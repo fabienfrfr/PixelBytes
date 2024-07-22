@@ -25,9 +25,7 @@
 
 **Mamba-MMix** is a Python project using mambapy for exploration of multimodal mixed training of Mamba backbone... 
 
-This project ...
-
-More details in the Arxiv preprint `SetPoint Learning : Toward Approach to control them all <https://arxiv.org/abs/2205.10118>`__ (model env based).
+This project try to reintroduce multibatch algorithms like Gato, algorithms which have not been successful with transformers and with the advent of LLMs, but which have potential with Mamba due to its sequential aspect. All while remaining within a minimalist prediction logic such as token generation.
 
 Installation
 ------------
