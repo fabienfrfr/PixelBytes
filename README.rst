@@ -19,6 +19,25 @@
 .. |PyTorchMinVersion| replace:: 1.0.0
 
 
+
+**Mamba-Bis** est un projet python pour tester les modèles Mamba bidirectionnel (en particulier celui avec les SMM partagé) sur des problématiques autres que les images.
+
+Hypothèses : les modèles bi-directionnel permettent plus de généralisation que les modèles uni-directionnel.
+
+L'objectif est d'entrainer des block mamba pour résoudre l'Othello (ou juste l'Othelo ?) et pour faire de l'image captionning.
+
+Dans le cas de l'othello, on s'inspirera du projet https://github.com/alxndrTL/othello_mamba
+
+Pour le cas de l'image captionning, nous affecterons des "tokens" d'images et des "tokens" de texte pour tester le cas où les modalités sont mélangés en imput. (p-e un peu trop compliqué ?)
+
+Pour le code des SSM, nous reutiliserons https://github.com/kyegomez/zeta pour faciliter la tache. 
+
+
+======= 
+
+OLD IDEAS !
+
+
 .. image:: https://raw.githubusercontent.com/fabienfrfr/Mamba-MMix/main/branding/assets/MambaMMix.png
   :target: https://pypi.org/project/functionalfilet/
 
