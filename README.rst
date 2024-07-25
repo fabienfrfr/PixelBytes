@@ -1,148 +1,125 @@
 .. -*- mode: rst -*-
 
+==========
+Mamba-Bis
+==========
 
-|GitHub|_ |PyPi|_ |DOI|_
+Mamba-Bis is a Python project aimed at testing bidirectional Mamba models (particularly those with shared SSMs) on tasks beyond image processing.
 
+Hypothesis
+----------
 
-.. |GitHub| image:: https://img.shields.io/github/v/release/fabienfrfr/functionalfilet
-.. _GitHub: https://github.com/fabienfrfr/functionalfilet
+Bidirectional models allow for greater generalization compared to unidirectional models.
 
-.. |PyPi| image:: https://img.shields.io/pypi/v/functionalfilet
-.. _PyPi: https://pypi.org/project/functionalfilet
+Objectives
+----------
 
+The main objectives of this project are:
 
-.. |DOI| image:: https://img.shields.io/badge/arXiv-ANNFE-%3CCOLOR%3E.svg
-.. _DOI: https://arxiv.org/abs/2205.10118
+1. Train Mamba blocks to solve Othello (or potentially just Othelo).
+2. Implement image captioning using Mamba architecture.
 
+Othello
+^^^^^^^
 
-.. |PythonMinVersion| replace:: 3.5
-.. |PyTorchMinVersion| replace:: 1.0.0
+For the Othello implementation, we will draw inspiration from the project:
 
+https://github.com/alxndrTL/othello_mamba
 
+Image Captioning
+^^^^^^^^^^^^^^^^
 
-**Mamba-Bis** est un projet python pour tester les modèles Mamba bidirectionnel (en particulier celui avec les SMM partagé) sur des problématiques autres que les images.
+In the case of image captioning, we will assign "image tokens" and "text tokens" to test scenarios where input modalities are mixed. (This approach may be somewhat complex.)
 
-Hypothèses : les modèles bi-directionnel permettent plus de généralisation que les modèles uni-directionnel.
+Implementation
+--------------
 
-L'objectif est d'entrainer des block mamba pour résoudre l'Othello (ou juste l'Othelo ?) et pour faire de l'image captionning.
+To simplify the implementation of State Space Models (SSMs), we will utilize the Zeta library:
 
-Dans le cas de l'othello, on s'inspirera du projet https://github.com/alxndrTL/othello_mamba
+https://github.com/kyegomez/zeta
 
-Pour le cas de l'image captionning, nous affecterons des "tokens" d'images et des "tokens" de texte pour tester le cas où les modalités sont mélangés en imput. (p-e un peu trop compliqué ?)
+Getting Started
+---------------
 
-Pour le code des SSM, nous reutiliserons https://github.com/kyegomez/zeta pour faciliter la tache. 
+(Add installation instructions and basic usage examples here)
 
+Training in a Notebook
+----------------------
 
-======= 
+To facilitate experimentation and visualization, we recommend using Jupyter notebooks for training. Here are some suggested steps for setting up a training notebook:
 
-OLD IDEAS !
+1. **Environment Setup**:
+   
+   - Import necessary libraries (PyTorch, Zeta, etc.)
+   - Set up CUDA if using GPU acceleration
 
+2. **Data Preparation**:
+   
+   - For Othello: Create a dataset of game states and moves
+   - For Image Captioning: Prepare image-text pairs dataset
 
-.. image:: https://raw.githubusercontent.com/fabienfrfr/Mamba-MMix/main/branding/assets/MambaMMix.png
-  :target: https://pypi.org/project/functionalfilet/
+3. **Model Definition**:
+   
+   - Define the Mamba model architecture using Zeta
+   - Implement bidirectional processing if applicable
 
+4. **Training Loop**:
+   
+   - Define loss function and optimizer
+   - Implement training and validation loops
+   - Add checkpointing for model saving
 
-**Mamba-MMix** is a Python project using mambapy for exploration of multimodal mixed training of Mamba backbone... 
+5. **Visualization**:
+   
+   - Plot training and validation losses
+   - For Othello: Visualize game board states
+   - For Image Captioning: Display sample captions for test images
 
-This project try to reintroduce multibatch algorithms like Gato, algorithms which have not been successful with transformers and with the advent of LLMs, but which have potential with Mamba due to its sequential aspect. All while remaining within a minimalist prediction logic such as token generation.
+6. **Hyperparameter Tuning**:
+   
+   - Use tools like Optuna for hyperparameter optimization
 
-Installation
+7. **Evaluation**:
+   
+   - Implement metrics specific to each task (e.g., win rate for Othello, BLEU score for captioning)
+
+Example Notebook Structure::
+
+    # 1. Setup
+    import torch
+    from zeta import Mamba
+    
+    # 2. Data Preparation
+    # (Task-specific data loading code)
+    
+    # 3. Model Definition
+    model = Mamba(...)
+    
+    # 4. Training Loop
+    for epoch in range(num_epochs):
+        # Training code
+        # Validation code
+    
+    # 5. Visualization
+    # (Plotting code)
+    
+    # 6. Hyperparameter Tuning
+    # (Optuna setup if needed)
+    
+    # 7. Evaluation
+    # (Task-specific evaluation code)
+
+Contributing
 ------------
 
-Dependencies
-~~~~~~~~~~~~
+(Add guidelines for contributing to the project)
 
-Functional-Filet requires:
+License
+-------
 
-- Python (>= |PythonMinVersion|)
-- NumPy
-- Pandas
-- PyTorch (>= |PyTorchMinVersion|)
-- Torchvision
-- Matplotlib
-- Networkx
+(Specify the license under which the project is released)
 
-Optionally, you need:
+Contact
+-------
 
-- Scikit-learn
-- Seaborn
-- Gym
-
-=======
-
-Functional-Filet is stable only from version 0.5.2, any previous version corresponds to the development phase.
-
-However, there are several possible optimizations, in particular on the restructuring of *Torch* tensors in Python which could be done in C++. For this, it is possible that there will be several code modifications in the future.
-
-
-The documentation includes more detailed `installation and examples instructions <https://github.com/fabienfrfr/functionalfilet/blob/main/doc/notebook.ipynb>`_.
-
-
-User installation
-~~~~~~~~~~~~~~~~~
-
-If you already have a working installation of numpy and pytorch,
-the easiest way to install scikit-learn is using ``pip``::
-
-    python3 -m pip install functionalfilet
-
-
-Development
------------
-
-We welcome new contributors of all experience levels.
-
-Important links
-~~~~~~~~~~~~~~~
-
-- Official source code repo: https://github.com/fabienfrfr/functionalfilet
-- Download releases: https://pypi.org/project/functionalfilet
-
-Source code
-~~~~~~~~~~~
-
-You can check the latest sources with the command::
-
-    git clone https://github.com/fabienfrfr/functionalfilet.git
-
-
-Utilization
------------
-
-Once installed, if we consider two variables *feature X* and *label y* already executed upstream of the code, here is a simple example of use in the case of a classification problem::
-
-	# package
-	from functionalfilet import model as ff 
-	# init model
-	model = ff.FunctionalFilet()
-	# train
-	model.fit(X,y)
-	# test
-	y_pred = model.predict(X, index=seeder_idx)
-
-
-Existing code
-~~~~~~~~~~~~~
-
-There is in the *example* directory of the git, several code to play with the learning parameters in simple cases. A brief summary is described at the top of each file::
-
-	python3 -m IPython
-	# universal approximation theorem
-	run example/uat_regression.py
-	# classification with overlapping and unbalance
-	run example/blob_classification.py
-	# reinforcment leaning with time dependancy
-	run example/gym_RL-CartPole-v0.py
-
-Citation
-~~~~~~~~
-If you take inspiration from my machine learning algorithm for a scientific publication, we would appreciate citations::
-
-	@article{furfaro2022artificial,
-	title={An Artificial Neural Network Functionalized by Evolution},
-	author={Furfaro, Fabien and Bar-Hen, Avner and Berthelot, Geoffroy},
-	journal={arXiv preprint arXiv:2205.10118},
-	year={2022}
-	}
-
-**Attribution required : Fabien Furfaro (CC 4.0 BY NC ND SA)**
+(Provide contact information or links to project maintainers)
