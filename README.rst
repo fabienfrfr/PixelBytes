@@ -61,7 +61,6 @@ To facilitate experimentation and visualization, we recommend using Jupyter note
 3. **Model Definition**:
    
    - Define the Mamba model architecture using Zeta
-   - Implement bidirectional processing if applicable
 
 4. **Training Loop**:
    
@@ -77,7 +76,7 @@ To facilitate experimentation and visualization, we recommend using Jupyter note
 
 6. **Hyperparameter Tuning**:
    
-   - Use tools like Optuna for hyperparameter optimization
+   - Use tools for hyperparameter optimization
 
 7. **Evaluation**:
    
