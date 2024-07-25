@@ -6,7 +6,8 @@ authors = ["fabienfrfr <fabien.furfaro@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.8"
+zetascale = "^2.6"
 
 
 [build-system]
