@@ -4,7 +4,7 @@
 @author: fabienfrfr
 """
 
-from mamba_bis.mambabis import MambaConfig, BiMamba
+from .mambabis import MambaConfig, BiMamba
 
 import torch, math
 import inspect
