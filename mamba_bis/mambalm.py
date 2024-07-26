@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+@author: fabienfrfr
+"""
+
+from mamba_bis.mambabis import MambaConfig, BiMamba
+
 import torch, math
 import inspect
 from einops import rearrange, repeat

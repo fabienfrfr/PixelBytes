@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+@author: fabienfrfr
+"""
+
 import torch, math
 import inspect
 from einops import rearrange, repeat
