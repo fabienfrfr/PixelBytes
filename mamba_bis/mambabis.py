@@ -49,7 +49,7 @@ class BiMambaBlock(nn.Module):
         self.ssm = SSM(self.d_inner, self.dt_rank, self.d_state) # Shared
 
         # Linear layer for z and x
-        self.proj = nn.Linear(self.dim, self.dim)
+        self.proj = nn.Linear(self.dim, 2 * config.d_inner, bias=False)
         # Softplus
         self.softplus = nn.Softplus()
 
