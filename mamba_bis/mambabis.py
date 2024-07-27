@@ -16,16 +16,16 @@ from dataclasses import dataclass
 @dataclass
 class MambaConfig:
     dim: int # The input dimension of the input tensor.
-    dt_rank: int = 32 #'auto' # The rank of the state space model.
-    d_inner: int = 256 #None #The dimension of the inner layer of the multi-head attention.
-    d_state: int = 256 #None #16 # The dimension of the state space model.
-    depth : int = 12 # The number of residual S6 layers
+    dt_rank: int = 'auto' # The rank of the state space model.
+    d_inner: int = None # The dimension of the inner layer of the multi-head attention.
+    d_state: int = None #16 # The dimension of the state space model.
+    depth : int = 8 # The number of residual S6 layers
     expand_factor: int = 2 # E in paper/comments
     d_conv : int = 4 # The convolutionnal windows
     rms_norm_eps: float = 1e-5 # Root-mean-square normalization per episode
     
     def __post_init__(self):
-        #self.d_inner = self.expand_factor * self.dim # E*D = ED in comments
+        self.d_inner = self.expand_factor * self.dim # E*D = ED in comments
         if self.dt_rank == 'auto':
             self.dt_rank = math.ceil(self.dim / self.d_state)
 
@@ -43,7 +43,7 @@ class BiMambaBlock(nn.Module):
         self.d_conv = config.d_conv
         
         # Bi-S6
-        self.shared_conv1d = nn.Conv1d(in_channels=self.dim, out_channels=self.dim, kernel_size=self.d_conv, bias=True, groups=config.d_inner, padding=config.d_conv - 1)
+        self.shared_conv1d = nn.Conv1d(in_channels=self.d_inner, out_channels=self.d_inner, kernel_size=self.d_conv, bias=True, groups=config.d_inner, padding=config.d_conv - 1)
         self.norm = nn.LayerNorm(self.dim)
         self.silu = nn.SiLU()
         self.ssm = SSM(self.d_inner, self.dt_rank, self.d_state) # Shared
