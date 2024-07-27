@@ -39,7 +39,7 @@ class SSM(nn.Module):
 
         x_dbl = self.x_proj(x)  # (b, l, dt_rank + 2*n)
         
-        (delta, B, C) = x_dbl.split(split_size=[self.self.dt_rank, n, n], dim=-1)  # delta: (b, l, dt_rank). B, C: (b, l, n)
+        (delta, B, C) = x_dbl.split(split_size=[self.dt_rank, n, n], dim=-1)  # delta: (b, l, dt_rank). B, C: (b, l, n)
         delta = F.softplus(self.dt_proj(delta))  # (b, l, d_in)
         y = self.selective_scan(x, delta, A, B, C, D)  # This is similar to run_SSM(A, B, C, u) in The Annotated S4 [2]
         
