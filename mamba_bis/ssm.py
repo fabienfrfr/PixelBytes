@@ -15,10 +15,10 @@ from einops import rearrange, repeat, einsum
 class SSM(nn.Module):
     def __init__(self, d_inner, dt_rank, d_state):
         super().__init__()
-	self.d_inner = d_inner
-	self.dt_rank = dt_rank
-	self.d_state = d_state
-	
+        self.d_inner = d_inner
+        self.dt_rank = dt_rank
+        self.d_state = d_state
+        
         # x_proj takes in `x` and outputs the input-specific Δ, B, C
         self.x_proj = nn.Linear(self.d_inner, self.dt_rank + self.d_state * 2, bias=False)
         
