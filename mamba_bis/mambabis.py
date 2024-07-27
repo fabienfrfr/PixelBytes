@@ -9,7 +9,7 @@ import inspect
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from torch import nn, Tensor
-from zeta.nn import SSM
+from .ssm import SSM
 from einops.layers.torch import Reduce
 from dataclasses import dataclass
 
@@ -17,7 +17,7 @@ from dataclasses import dataclass
 class MambaConfig:
     dim: int # The input dimension of the input tensor.
     dt_rank: int = 32 #'auto' # The rank of the state space model.
-    dim_inner: int = 256 #None #The dimension of the inner layer of the multi-head attention.
+    d_inner: int = 256 #None #The dimension of the inner layer of the multi-head attention.
     d_state: int = 256 #None #16 # The dimension of the state space model.
     depth : int = 12 # The number of residual S6 layers
     expand_factor: int = 2 # E in paper/comments
@@ -25,7 +25,7 @@ class MambaConfig:
     rms_norm_eps: float = 1e-5 # Root-mean-square normalization per episode
     
     def __post_init__(self):
-        self.d_inner = self.expand_factor * self.dim # E*D = ED in comments
+        #self.d_inner = self.expand_factor * self.dim # E*D = ED in comments
         if self.dt_rank == 'auto':
             self.dt_rank = math.ceil(self.dim / self.d_state)
 
@@ -38,16 +38,15 @@ class BiMambaBlock(nn.Module):
         super().__init__()
         self.dim = config.dim
         self.dt_rank = config.dt_rank
-        self.dim_inner = config.dim_inner
+        self.d_inner = config.dim_inner
         self.d_state = config.d_state
         self.d_conv = config.d_conv
         
         # Bi-S6
-        self.forward_conv1d = nn.Conv1d(in_channels=self.dim, out_channels=self.dim, kernel_size=self.d_conv) #groups & padding = kernel size?
-        self.backward_conv1d = nn.Conv1d(in_channels=self.dim, out_channels=self.dim, kernel_size=self.d_conv) #groups & padding = kernel size?
+        self.shared_conv1d = nn.Conv1d(in_channels=self.dim, out_channels=self.dim, kernel_size=self.d_conv) #groups & padding = kernel size?
         self.norm = nn.LayerNorm(self.dim)
         self.silu = nn.SiLU()
-        self.ssm = SSM(self.dim, self.dt_rank, self.dim_inner, self.d_state) # Shared
+        self.ssm = SSM(self.d_inner, self.dt_rank, self.d_state) # Shared
 
         # Linear layer for z and x
         self.proj = nn.Linear(self.dim, self.dim)
@@ -65,9 +64,9 @@ class BiMambaBlock(nn.Module):
         z1 = self.proj(x)
         x = self.proj(x)
         # forward con1d
-        x1 = self.process_direction(x,self.forward_conv1d,self.ssm)
+        x1 = self.process_direction(x,self.shared_conv1d,self.ssm)
         # backward conv1d
-        x2 = self.process_direction(x,self.backward_conv1d,self.ssm)
+        x2 = self.process_direction(x,self.shared_conv1d,self.ssm)
         # Activation
         z = self.silu(z1)
         # Matmul
@@ -98,7 +97,7 @@ class BiMamba(nn.Module):
     
     def step(self, x, caches):
         # caches : [cache(layer) for all layers], cache : (h, inputs)
-        # initial caches : [(None, torch.zeros(B, self.config.dim_inner, self.config.d_conv-1)) for _ in range(self.config.depth)]
+        # initial caches : [(None, torch.zeros(B, self.config.d_inner, self.config.d_conv-1)) for _ in range(self.config.depth)]
         for i, layer in enumerate(self.layers):
             x, caches[i] = layer.step(x, caches[i])
         return x, caches
