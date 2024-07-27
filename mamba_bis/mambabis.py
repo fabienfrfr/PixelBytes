@@ -38,7 +38,7 @@ class BiMambaBlock(nn.Module):
         super().__init__()
         self.dim = config.dim
         self.dt_rank = config.dt_rank
-        self.d_inner = config.dim_inner
+        self.d_inner = config.d_inner
         self.d_state = config.d_state
         self.d_conv = config.d_conv
         
