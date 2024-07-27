@@ -43,7 +43,7 @@ class BiMambaBlock(nn.Module):
         self.d_conv = config.d_conv
         
         # Bi-S6
-        self.shared_conv1d = nn.Conv1d(in_channels=self.dim, out_channels=self.dim, kernel_size=self.d_conv) #groups & padding = kernel size?
+        self.shared_conv1d = nn.Conv1d(in_channels=self.dim, out_channels=self.dim, kernel_size=self.d_conv, bias=True, groups=config.d_inner, padding=config.d_conv - 1)
         self.norm = nn.LayerNorm(self.dim)
         self.silu = nn.SiLU()
         self.ssm = SSM(self.d_inner, self.dt_rank, self.d_state) # Shared
