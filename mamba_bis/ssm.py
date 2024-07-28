@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 @author: fabienfrfr
+
+adapted and simplified from https://github.com/johnma2006/mamba-minimal/blob/master/model.py
 """
 
-import math
-import json
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dataclasses import dataclass
-from einops import rearrange, repeat, einsum
+from einops import repeat, einsum
 
 class SSM(nn.Module):
     def __init__(self, d_inner, dt_rank, d_state):
@@ -64,4 +63,3 @@ class SSM(nn.Module):
         
         y = y + u * D
         return y
-

@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 @author: fabienfrfr
+
+adapted and simplified from https://github.com/alxndrTL/mamba.py/blob/main/mambapy/vim.py
 """
 
 import torch, math
-import inspect
-from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
+from einops import rearrange
 from torch import nn, Tensor
 from .ssm import SSM
-from einops.layers.torch import Reduce
 from dataclasses import dataclass
 
 @dataclass
@@ -20,7 +19,7 @@ class MambaConfig:
     d_inner: int = None # The dimension of the inner layer of the multi-head attention.
     d_state: int = None #16 # The dimension of the state space model.
     depth : int = 8 # The number of residual S6 layers
-    expand_factor: int = 2 # E in paper/comments
+    expand_factor: int = 2 # E in paper/comments
     d_conv : int = 4 # The convolutionnal windows
     rms_norm_eps: float = 1e-5 # Root-mean-square normalization per episode
     
@@ -49,36 +48,38 @@ class BiMambaBlock(nn.Module):
         self.ssm = SSM(self.d_inner, self.dt_rank, self.d_state) # Shared
 
         # Linear layer for z and x
-        self.proj = nn.Linear(self.dim, 2 * config.d_inner, bias=False)
+        self.in_proj = nn.Linear(self.dim, 2 * self.d_inner, bias=False)
+        self.out_proj = nn.Linear(self.d_inner, self.dim, bias=False)
         # Softplus
         self.softplus = nn.Softplus()
 
     def forward(self, x: torch.Tensor):
         b, s, d = x.shape
-        ##### correct this part --> follow example
         # Skip connection
         skip = x
         # Normalization
         x = self.norm(x)
         # Split x into x1 and x2 with linears
-        z1 = self.proj(x)
-        x = self.proj(x)
-        # forward con1d
-        x1 = self.process_direction(x,self.shared_conv1d,self.ssm)
-        # backward conv1d
-        x2 = self.process_direction(x,self.shared_conv1d,self.ssm)
+        z = self.in_proj(x)
+        (x1, z1) = z.split(split_size=[self.d_inner, self.d_inner], dim=-1)
+        (x2, z2) = z.flip([1]).split(split_size=[self.d_inner, self.d_inner], dim=-1)
+        # forward & backward con1d (shared)
+        x1 = self.process_direction(x1,self.shared_conv1d,self.ssm, s)
+        x2 = self.process_direction(x2,self.shared_conv1d,self.ssm, s)
         # Activation
-        z = self.silu(z1)
+        z1 = self.silu(z1)
+        z2 = self.silu(z2)
         # Matmul
-        x1 *= z
-        x2 *= z
+        x1 *= z1
+        x2 *= z2
+        # projection
+        x = self.out_proj(x1+x2)
         # Residual connection
-        return x1 + x2 + skip
+        return x + skip
 
-    def process_direction(self,x: Tensor,conv1d: nn.Conv1d,ssm: SSM):
+    def process_direction(self,x: Tensor,conv1d: nn.Conv1d,ssm: SSM, s:int):
         x = rearrange(x, "b s d -> b d s")
-        x = self.softplus(conv1d(x))
-        #print(f"Conv1d: {x}")
+        x = self.softplus(conv1d(x)[:, :, :s])
         x = rearrange(x, "b d s -> b s d")
         x = ssm(x)
         return x
@@ -90,13 +91,13 @@ class BiMamba(nn.Module):
         self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
 
     def forward(self, x):
-        # x : (B, L, D) == y : (B, L, D)
+        # x : (B, L, D) == y : (B, L, D)
         for layer in self.layers:
             x = layer(x)
         return x
     
     def step(self, x, caches):
-        # caches : [cache(layer) for all layers], cache : (h, inputs)
+        # caches : [cache(layer) for all layers], cache : (h, inputs)
         # initial caches : [(None, torch.zeros(B, self.config.d_inner, self.config.d_conv-1)) for _ in range(self.config.depth)]
         for i, layer in enumerate(self.layers):
             x, caches[i] = layer.step(x, caches[i])

@@ -2,17 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 @author: fabienfrfr
+
+adapted and simplified from https://github.com/alxndrTL/mamba.py/blob/main/mambapy/lm.py
 """
 
 from .mambabis import MambaConfig, BiMamba
 
 import torch, math
 import inspect
-from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
-from torch import nn, Tensor
-from einops.layers.torch import Reduce
-from dataclasses import dataclass
+from torch import nn
 
 class RMSNorm(nn.Module):
     def __init__(self, d_model: int, eps: float = 1e-5):
@@ -43,7 +41,7 @@ class BiMambaLM(nn.Module):
                 torch.nn.init.normal_(p, mean=0.0, std=0.02/math.sqrt(2 * self.config.depth))
         
     def forward(self, tokens):
-        # tokens : (B, L) # logits : (B, L, vocab_size)
+        # tokens : (B, L) # logits : (B, L, vocab_size)
         x = self.embedding(tokens)
         x = self.core(x)
         x = self.out_norm(x)
@@ -53,7 +51,7 @@ class BiMambaLM(nn.Module):
     def forward_up_to(self, tokens, layer):
         # tokens : (B, L)
         # layer (1->n_layers): will stop the forward pass just after this layer
-        # x : (B, L, D) activations after {layer}
+        # x : (B, L, D) activations after {layer}
         x = self.embedding(tokens)
         x = self.core(x, stop_at_layer=layer)
         return x
@@ -88,3 +86,25 @@ class BiMambaLM(nn.Module):
         optimizer = torch.optim.AdamW(optim_groups, lr=learning_rate, betas=betas, **extra_args)
 
         return optimizer
+
+### basic exemple (othello test)
+if __name__ == '__main__' :
+    # Model config
+    vocab_size = 65 # Othello
+    d_model = 256 # 288 for 
+    n_layers = 8
+    d_state = 16
+    dim_inner = 256 #2 * d_state
+    # MambaConfig(dim=256, dt_rank=32, d_inner=256, d_state=16, depth=8, expand_factor=2, d_conv=4, rms_norm_eps=1e-05) 
+    # MambaPyConfig(d_model=256, n_layers=8, dt_rank=16, d_state=16, expand_factor=2, d_conv=4, rms_norm_eps=1e-05)
+    config = MambaConfig(dim=d_model, depth=n_layers, d_state=d_state, d_inner=dim_inner)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # fake input
+    x = torch.randint(high=vocab_size, size=(256, 59))
+    x.shape
+    
+    # Initialize model
+    model = BiMambaLM(config, vocab_size=vocab_size+7).to(device)
+    # test
+    logits = model(x) # (B, L, vocab_size)
