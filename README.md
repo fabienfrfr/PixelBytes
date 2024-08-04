@@ -31,12 +31,6 @@ Image Captioning
 
 In the case of image captioning, we will assign "image tokens" and "text tokens" to test scenarios where input modalities are mixed. (This approach may be somewhat complex.)
 
-Implementation
---------------
-
-To simplify the implementation of State Space Models (SSMs), we will utilize the Zeta library:
-
-https://github.com/kyegomez/zeta
 
 Getting Started
 ---------------
@@ -50,7 +44,7 @@ To facilitate experimentation and visualization, we recommend using Jupyter note
 
 1. **Environment Setup**:
    
-   - Import necessary libraries (PyTorch, Zeta, etc.)
+   - Import necessary libraries (PyTorch, etc.)
    - Set up CUDA if using GPU acceleration
 
 2. **Data Preparation**:
@@ -60,7 +54,7 @@ To facilitate experimentation and visualization, we recommend using Jupyter note
 
 3. **Model Definition**:
    
-   - Define the Mamba model architecture using Zeta
+   - Define the Mamba model architecture
 
 4. **Training Loop**:
    
@@ -86,7 +80,7 @@ Example Notebook Structure::
 
     # 1. Setup
     import torch
-    from zeta import Mamba
+    from mamba_bis import Mamba
     
     # 2. Data Preparation
     # (Task-specific data loading code)
@@ -116,7 +110,7 @@ Contributing
 License
 -------
 
-(Specify the license under which the project is released)
+MIT Licence
 
 Contact
 -------

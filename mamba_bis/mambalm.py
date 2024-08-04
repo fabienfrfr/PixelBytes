@@ -102,7 +102,7 @@ if __name__ == '__main__' :
 
     # fake input
     x = torch.randint(high=vocab_size, size=(256, 59))
-    x.shape
+    print(x.shape)
     
     # Initialize model
     model = BiMambaLM(config, vocab_size=vocab_size+7).to(device)

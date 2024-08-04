@@ -73,7 +73,7 @@ class BiMambaBlock(nn.Module):
         x1 *= z1
         x2 *= z2
         # projection
-        x = self.out_proj(x1+x2)
+        x = self.out_proj((x1+x2.flip([1])) / 2)
         # Residual connection
         return x + skip
 
