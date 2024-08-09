@@ -94,7 +94,7 @@ class BiMambaBlock2(nn.Module):
     BiMambaBlock2 is a module that implements Bi-Mamba+ with mamba_ssm
     in.shape == out.shape
     """
-    def __init__(self, config: MambaConfig, d_model, n_state):
+    def __init__(self, config: MambaConfig):
         super(BiMambaBlock2, self).__init__()
         self.d_model = config.dim, # Model dimension d_model
         self.d_state = config.d_state,  # SSM state expansion factor, typically 64 or 128
