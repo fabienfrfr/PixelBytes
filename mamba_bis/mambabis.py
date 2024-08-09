@@ -10,6 +10,12 @@ and https://github.com/Huangmr0719/BiMamba/blob/main/BiMamba.py
 
 import torch, math
 
+try :
+    from mamba_ssm import Mamba2
+    print("Official CUDA implementation for training (not compatible with (b)float16)")
+except ImportError:
+    print("Failed to import mamba_ssm. (not adapted for training..)")
+
 from einops import rearrange
 from torch import nn, Tensor
 from .ssm import SSM
@@ -134,14 +140,13 @@ class BiMamba(nn.Module):
     def __init__(self, config: MambaConfig):
         super().__init__()
         self.config = config
-        if config.use_mambassm :
+        if self.config.use_mambassm :
             try :
-                from mamba_ssm import Mamba2
                 self.layers = nn.ModuleList([BiMambaBlock2(config) for _ in range(config.depth)])
-                print("Official CUDA implementation for training (not compatible with (b)float16)")
             except ImportError:
-                print("Failed to import mamba_ssm. (not adapted for training..)")
-                self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
+                self.config.use_mambassm = False
+        if not(self.config.use_mambassm) :
+            self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
 
     def forward(self, x):
         # x : (B, L, D) == y : (B, L, D)
