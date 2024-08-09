@@ -11,7 +11,7 @@ and https://github.com/Huangmr0719/BiMamba/blob/main/BiMamba.py
 import torch, math
 
 try :
-    from mamba_ssm import Mamba2
+    from mamba_ssm import Mamba
     print("Official CUDA implementation for training (not compatible with (b)float16)")
 except ImportError:
     print("Failed to import mamba_ssm. (not adapted for training..)")
@@ -105,7 +105,7 @@ class BiMambaBlock2(nn.Module):
         self.d_state = config.d_state,  # SSM state expansion factor, typically 64 or 128
         self.d_conv = config.d_conv,    # Local convolution width
 
-        self.mamba = Mamba2(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv)
+        self.mamba = Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv)
 
         # Norm and feed-forward network layer
         self.norm_in = nn.LayerNorm(self.d_model)
