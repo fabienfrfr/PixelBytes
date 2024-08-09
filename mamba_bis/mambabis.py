@@ -10,7 +10,8 @@ and https://github.com/Huangmr0719/BiMamba/blob/main/BiMamba.py
 
 import torch, math
 
-from mamba_ssm import Mamba2
+if torch.cuda.is_available():
+    from mamba_ssm import Mamba2
 
 from einops import rearrange
 from torch import nn, Tensor
@@ -91,7 +92,7 @@ class BiMambaBlock(nn.Module):
 
 class BiMambaBlock2(nn.Module):
     """
-    BiMambaBlock2 is a module that implements Bi-Mamba+ with mamba_ssm
+    BiMambaBlock2 is a module that implements Bi-Mamba+ with mamba_ssm (GPU only)
     in.shape == out.shape
     """
     def __init__(self, config: MambaConfig):
@@ -106,9 +107,9 @@ class BiMambaBlock2(nn.Module):
         self.norm_in = nn.LayerNorm(self.d_model)
         self.norm_out = nn.LayerNorm(self.d_model)
         self.feed_forward = nn.Sequential(
-            nn.Linear(self.d_model, self.d_model * self.d_conv),
+            nn.Linear(self.d_model, self.d_model * 4),
             nn.GELU(),
-            nn.Linear(self.d_model * self.d_conv, self.d_model))
+            nn.Linear(self.d_model * 4, self.d_model))
 
     def forward(self, x):
         # Residual connection of the original input
@@ -133,10 +134,10 @@ class BiMambaBlock2(nn.Module):
         return output
 
 class BiMamba(nn.Module):
-    def __init__(self, config: MambaConfig, use_mamba2=True):
+    def __init__(self, config: MambaConfig):
         super().__init__()
         self.config = config
-        if use_mamba2 :
+        if torch.cuda.is_available(): :
             self.layers = nn.ModuleList([BiMambaBlock2(config) for _ in range(config.depth)])
         else : 
             self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
