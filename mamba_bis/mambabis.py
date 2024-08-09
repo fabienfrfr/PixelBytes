@@ -103,12 +103,12 @@ class BiMambaBlock2(nn.Module):
         self.mamba = Mamba2(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv)
 
         # Norm and feed-forward network layer
-        self.norm_in = nn.LayerNorm(d_model)
-        self.norm_out = nn.LayerNorm(d_model)
+        self.norm_in = nn.LayerNorm(self.d_model)
+        self.norm_out = nn.LayerNorm(self.d_model)
         self.feed_forward = nn.Sequential(
-            nn.Linear(d_model, d_model * 4),
+            nn.Linear(self.d_model, self.d_model * self.d_conv),
             nn.GELU(),
-            nn.Linear(d_model * 4, d_model))
+            nn.Linear(self.d_model * self.d_conv, self.d_model))
 
     def forward(self, x):
         # Residual connection of the original input
