@@ -10,7 +10,7 @@ and https://github.com/Huangmr0719/BiMamba/blob/main/BiMamba.py
 
 import torch, math
 
-if torch.cuda.is_available():
+if torch.cuda.is_available() :
     from mamba_ssm import Mamba2
 
 from einops import rearrange
@@ -137,7 +137,7 @@ class BiMamba(nn.Module):
     def __init__(self, config: MambaConfig):
         super().__init__()
         self.config = config
-        if torch.cuda.is_available(): :
+        if torch.cuda.is_available() :
             self.layers = nn.ModuleList([BiMambaBlock2(config) for _ in range(config.depth)])
         else : 
             self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
