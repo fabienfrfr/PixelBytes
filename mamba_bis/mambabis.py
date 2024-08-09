@@ -92,7 +92,7 @@ class BiMambaBlock(nn.Module):
 
 class BiMambaBlock2(nn.Module):
     """
-    BiMambaBlock2 is a module that implements Bi-Mamba+ with mamba_ssm (GPU only)
+    BiMambaBlock2 is a module that implements simplified Bi-Mamba+ with mamba_ssm (GPU only)
     in.shape == out.shape
     """
     def __init__(self, config: MambaConfig):
@@ -107,9 +107,9 @@ class BiMambaBlock2(nn.Module):
         self.norm_in = nn.LayerNorm(self.d_model)
         self.norm_out = nn.LayerNorm(self.d_model)
         self.feed_forward = nn.Sequential(
-            nn.Linear(self.d_model, self.d_model * 4),
+            nn.Linear(config.dim, config.dim * 4),
             nn.GELU(),
-            nn.Linear(self.d_model * 4, self.d_model))
+            nn.Linear(config.dim * 4, config.dim))
 
     def forward(self, x):
         # Residual connection of the original input
@@ -121,8 +121,7 @@ class BiMambaBlock2(nn.Module):
 
         # Backward Mamba
         x_flip = torch.flip(x_norm, dims=[1])  # Flip Sequence
-        mamba_out_backward = self.mamba(x_flip)
-        mamba_out_backward = torch.flip(mamba_out_backward, dims=[1])  # Flip back
+        mamba_out_backward = self.mamba(x_flip).flip([1]) # Flip back
 
         # Combining forward and backward
         mamba_out = mamba_out_forward + mamba_out_backward
