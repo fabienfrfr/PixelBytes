@@ -10,9 +10,6 @@ and https://github.com/Huangmr0719/BiMamba/blob/main/BiMamba.py
 
 import torch, math
 
-if torch.cuda.is_available() :
-    from mamba_ssm import Mamba2
-
 from einops import rearrange
 from torch import nn, Tensor
 from .ssm import SSM
@@ -28,6 +25,7 @@ class MambaConfig:
     expand_factor: int = 2 # E in paper/comments
     d_conv : int = 4 # The convolutionnal windows
     rms_norm_eps: float = 1e-5 # Root-mean-square normalization per episode
+    use_mambassm : bool = True #
     
     def __post_init__(self):
         self.d_inner = self.expand_factor * self.dim # E*D = ED in comments
@@ -92,7 +90,7 @@ class BiMambaBlock(nn.Module):
 
 class BiMambaBlock2(nn.Module):
     """
-    BiMambaBlock2 is a module that implements simplified Bi-Mamba+ with mamba_ssm (GPU only)
+    BiMambaBlock2 is a module that implements simplified Bi-Mamba+ with mamba_ssm (CUDA only)
     in.shape == out.shape
     """
     def __init__(self, config: MambaConfig):
@@ -136,10 +134,14 @@ class BiMamba(nn.Module):
     def __init__(self, config: MambaConfig):
         super().__init__()
         self.config = config
-        if torch.cuda.is_available() :
-            self.layers = nn.ModuleList([BiMambaBlock2(config) for _ in range(config.depth)])
-        else : 
-            self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
+        if config.use_mambassm :
+            try :
+                from mamba_ssm import Mamba2
+                self.layers = nn.ModuleList([BiMambaBlock2(config) for _ in range(config.depth)])
+                print("Official CUDA implementation for training (not compatible with (b)float16)")
+            except ImportError:
+                print("Failed to import mamba_ssm. (not adapted for training..)")
+                self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
 
     def forward(self, x):
         # x : (B, L, D) == y : (B, L, D)
