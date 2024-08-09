@@ -3,10 +3,15 @@
 """
 @author: fabienfrfr
 
-adapted and simplified from https://github.com/alxndrTL/mamba.py/blob/main/mambapy/vim.py
+adapted and simplified from 
+https://github.com/alxndrTL/mamba.py/blob/main/mambapy/vim.py 
+and https://github.com/Huangmr0719/BiMamba/blob/main/BiMamba.py
 """
 
 import torch, math
+
+from mamba_ssm import Mamba2
+
 from einops import rearrange
 from torch import nn, Tensor
 from .ssm import SSM
@@ -30,7 +35,7 @@ class MambaConfig:
 
 class BiMambaBlock(nn.Module):
     """
-    BiMambaBlock is a module that implements Bidirectional State Space Model
+    BiMambaBlock is a module that implements VIM Bidirectional State Space Model
     in.shape == out.shape
     """
     def __init__(self, config: MambaConfig):
@@ -84,11 +89,57 @@ class BiMambaBlock(nn.Module):
         x = ssm(x)
         return x
 
+class BiMambaBlock2(nn.Module):
+    """
+    BiMambaBlock2 is a module that implements Bi-Mamba+ with mamba_ssm
+    in.shape == out.shape
+    """
+    def __init__(self, config: MambaConfig, d_model, n_state):
+        super(BiMambaBlock2, self).__init__()
+        self.d_model = config.dim, # Model dimension d_model
+        self.d_state = config.d_state,  # SSM state expansion factor, typically 64 or 128
+        self.d_conv = config.d_conv,    # Local convolution width
+
+        self.mamba = Mamba2(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv)
+
+        # Norm and feed-forward network layer
+        self.norm_in = nn.LayerNorm(d_model)
+        self.norm_out = nn.LayerNorm(d_model)
+        self.feed_forward = nn.Sequential(
+            nn.Linear(d_model, d_model * 4),
+            nn.GELU(),
+            nn.Linear(d_model * 4, d_model))
+
+    def forward(self, x):
+        # Residual connection of the original input
+        residual = x
+        
+        # Forward Mamba
+        x_norm = self.norm_in(x)
+        mamba_out_forward = self.mamba(x_norm)
+
+        # Backward Mamba
+        x_flip = torch.flip(x_norm, dims=[1])  # Flip Sequence
+        mamba_out_backward = self.mamba(x_flip)
+        mamba_out_backward = torch.flip(mamba_out_backward, dims=[1])  # Flip back
+
+        # Combining forward and backward
+        mamba_out = mamba_out_forward + mamba_out_backward
+        
+        mamba_out = self.norm_out(mamba_out)
+        ff_out = self.feed_forward(mamba_out)
+
+        output = ff_out + residual
+        return output
+
 class BiMamba(nn.Module):
-    def __init__(self, config: MambaConfig):
+    def __init__(self, config: MambaConfig, use_mamba2=True):
         super().__init__()
         self.config = config
-        self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
+        if use_mamba2 :
+            self.layers = nn.ModuleList([BiMambaBlock2(config) for _ in range(config.depth)])
+        else : 
+            self.layers = nn.ModuleList([BiMambaBlock(config) for _ in range(config.depth)])
 
     def forward(self, x):
         # x : (B, L, D) == y : (B, L, D)

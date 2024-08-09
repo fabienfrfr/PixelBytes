@@ -9,7 +9,7 @@ adapted and simplified from https://github.com/johnma2006/mamba-minimal/blob/mas
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from einops import repeat
+from einops import repeat, einsum
 from .pscan import pscan
 
 class SSM(nn.Module):
@@ -43,26 +43,29 @@ class SSM(nn.Module):
         y = self.selective_scan(x, delta, A, B, C, D) # This is similar to run_SSM(A, B, C, u) in The Annotated S4 [2]
         return y
 
-    def selective_scan(self, x, delta, A, B, C, D):
-        # x : (B, L, ED) y : (B, L, ED) Δ : (B, L, ED)
+    def selective_scan(self, u, delta, A, B, C, D):
+        # u : (B, L, ED) y : (B, L, ED) Δ : (B, L, ED)
         # A : (ED, N) B : (B, L, N)  C : (B, L, N) D : (ED)
         
-        _, L, _ = x.shape
+        (b, l, d_in) = u.shape
+        n = A.shape[1]
         
-        deltaA = torch.exp(delta.unsqueeze(-1) * A) # (B, L, ED, N)
-        deltaB = delta.unsqueeze(-1) * B.unsqueeze(2) # (B, L, ED, N)
-
-        BX = deltaB * (x.unsqueeze(-1)) # (B, L, ED, N)
-        
+        # Discretize continuous parameters (A, B)
+        deltaA = torch.exp(einsum(delta, A, 'b l d_in, d_in n -> b l d_in n'))
+        deltaB_u = einsum(delta, B, u, 'b l d_in, b l n, b l d_in -> b l d_in n')
+                
         # parallel or seq
         if torch.cuda.is_available() :
-            hs = pscan(deltaA, BX)
+            hs = pscan(deltaA, deltaB_u)
         else :
-            h = torch.zeros(x.size(0), self.d_inner, self.d_state, device=deltaA.device) # (B, ED, N)
-            hs = [deltaA[:, t] * h + BX[:, t] for t in range(0, L)]
-            hs = torch.stack(hs, dim=1) # (B, L, ED, N)
+            x = torch.zeros((b, d_in, n), device=deltaA.device)
+            hs = []
+            for i in range(0, l) :
+                x = deltaA[:, i] * x + deltaB_u[:, i]
+                h = einsum(x, C[:, i, :], 'b d_in n, b n -> b d_in')
+                hs.append(h)
+        
+        y = torch.stack(hs, dim=1) # (B, L, ED, N)
 
-        y = (hs @ C.unsqueeze(-1)).squeeze(3) # (B, L, ED, N) @ (B, L, N, 1) -> (B, L, ED, 1)
-
-        y = y + D * x
+        y = y + u * D
         return y
