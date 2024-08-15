@@ -8,10 +8,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.8"
 torch = "^2.0"
-
-[tool.poetry.extras]
-caching = ["causal-conv1d","mamba-ssm"]
-
+mamba-ssm = "^2.0"
+causal-conv1d = ">=1.4.0"
 
 [build-system]
 requires = ["poetry-core"]

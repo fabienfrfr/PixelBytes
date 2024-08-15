@@ -1,15 +1,15 @@
 .. -*- mode: rst -*-
 
 ==========
-Mamba-Bis
+Mamba-Bys
 ==========
 
-Mamba-Bis is a Python project aimed at testing bidirectional Mamba models (particularly those with shared SSMs) on tasks beyond image processing.
+Mamba-Bys is a Python project aimed at testing byte bidirectional Mamba models (particularly those with shared SSMs and token-free) on tasks beyond multimodal processing.
 
 Hypothesis
 ----------
 
-Bidirectional models allow for greater generalization compared to unidirectional models.
+Bidirectional byte models allow for greater generalization compared to unidirectional models with using one input for all modality.
 
 Objectives
 ----------
