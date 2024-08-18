@@ -6,8 +6,11 @@
 TESTS FILE
 """
 
+from mamba_ssm import Mamba
+
 from mamba_bis.mambabis import MambaConfig, BiMamba
 from mamba_bis.mambalm import BiMambaLM
+
 
 import torch
 
@@ -15,7 +18,7 @@ import torch
 if __name__ == '__main__' :
     # Model config
     vocab_size = 65 # Othello
-    d_model = 256 # 288 for 
+    d_model = 64 #256 # 288 for 
     n_layers = 8
     d_state = 16
     dim_inner = 256 #2 * d_state
