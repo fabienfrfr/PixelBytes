@@ -16,7 +16,7 @@ class MambaConfig:
     d_conv : int = 4 # The convolutionnal windows
     expand: int = 2 # E in paper/comments
     depth : int = 8 # The number of residual S6 layers
-    vocab_size : int  # ASCII bytes + Pixel NES
+    vocab_size : int = 256+216+2 # ASCII bytes + RGB 6*6*6 pixel + img step/stop
 
 class BysMamba(nn.Module):
     def __init__(self, config: MambaConfig):
@@ -39,7 +39,7 @@ class BysMamba(nn.Module):
         # embedding
         x = self.linear_embedding(x.view(B*L, M, N)).squeeze()
         x = x.permute(0, 3, 1, 2)  # (batch_size*L, embedding_dim, height, width)
-        x = self.patch_embedding(x).view(B, L, dim) # (B,L,D)
+        x = ((x[:,:,M//2,N//2].squeeze() + self.patch_embedding(x)).view(B, L, dim))/2 # (B,L,D)
         # bidirectional mamba input
         x += (self.in_mamba(x) + self.in_mamba(torch.flip(x, dims=[1])).flip([1]))/2
         # mamba intermediate layers
