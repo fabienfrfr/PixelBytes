@@ -58,9 +58,7 @@ def input_seq_construct(arr, dim=3, sep_val=255):
     else :
         return result.reshape(-1, dim, dim)[None]
 
-def image_pixelization(img, palette, max_size=25): 
-    num_colors = len(palette)
-    ## Cropping part
+def image_autocrop(img) :
     # Binarize image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, binary = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY_INV)
@@ -70,22 +68,22 @@ def image_pixelization(img, palette, max_size=25):
     # Crop image
     x_min, y_min = max(0, x), max(0, y)
     x_max, y_max = min(img.shape[1], x + w), min(img.shape[0], y + h)
-    img = img[y_min:y_max, x_min:x_max]
-    ## Pretreatment
-    # Remove alpha (if)
-    if img.shape[2] == 4:
-        rgb_channels = img[:, :, :3]
-        alpha_channel = img[:, :, 3] / 255.0
-        # Merge image with white background
-        white_background = np.ones_like(rgb_channels, dtype=np.uint8) * 255
-        img = cv2.convertScaleAbs(rgb_channels * alpha_channel[..., None] + white_background * (1 - alpha_channel[..., None]))
-    # Scale factor calculation
-    h, w = img.shape[:2]
-    scale_factor = max_size / max(h, w)
+    return img[y_min:y_max, x_min:x_max]
+
+def alpha_to_blank(img) :
+    rgb_channels = img[:, :, :3]
+    alpha_channel = img[:, :, 3] / 255.0
+    # Merge image with white background
+    white_background = np.ones_like(rgb_channels, dtype=np.uint8) * 255
+    return cv2.convertScaleAbs(rgb_channels * alpha_channel[..., None] + white_background * (1 - alpha_channel[..., None]))
+
+def resize_image(img, h, w, m=25, a=1) :
+    scale_factor = m / max(h, w)
     # resizing
     new_height = int(min(h,w) * scale_factor)
-    img = cv2.resize(img, (2*new_height, 2*max_size) if h>w else (2*max_size, 2*new_height), interpolation=cv2.INTER_NEAREST)
-    ## Quantize image
+    return cv2.resize(img, (a*new_height, a*m) if h>w else (a*m, 2*new_height), interpolation=cv2.INTER_NEAREST)
+
+def kmean_quantization(img, num_colors) :
     # Flatten image and convertion
     img = cv2.cvtColor(img, cv2.COLOR_BGR2Lab)
     pixels = img.reshape((-1, 3))
@@ -96,11 +94,9 @@ def image_pixelization(img, palette, max_size=25):
     # Change pixel following cluster
     centers = np.uint8(centers)
     quantized = centers[labels.flatten()]
-    img = cv2.cvtColor(quantized.reshape(img.shape), cv2.COLOR_Lab2BGR)
-    # resizing
-    new_height = int(min(h,w) * scale_factor)
-    img = cv2.resize(img, (new_height, max_size) if h>w else (max_size, new_height), interpolation=cv2.INTER_NEAREST)
-    ## Palette association
+    return cv2.cvtColor(quantized.reshape(img.shape), cv2.COLOR_Lab2BGR)
+
+def image_paletization(img, palette) :
     palette_rgb = palette.copy()
     palette = color.rgb2lab(palette_rgb.reshape(1, -1, 3) / 255.0).reshape(-1, 3)
     def closest_color(pixel, palette):
@@ -109,5 +105,23 @@ def image_pixelization(img, palette, max_size=25):
         distances = np.linalg.norm(palette - pixel_lab, axis=1)
         # Retourner la couleur la plus proche en RGB
         return palette_rgb[np.argmin(distances)]
-    img = np.apply_along_axis(closest_color, 2 , img, palette)
-    return img
+    return np.apply_along_axis(closest_color, 2 , img, palette)
+    
+def image_pixelization(img, palette, max_size=25):
+    # Parameter
+    h, w = img.shape[:2]
+    num_colors = len(palette)
+    ## Cropping part
+    img = image_autocrop(img)
+    ## Pretreatment
+    # Remove alpha (if)
+    if img.shape[2] == 4:
+        img = alpha_to_blank(img)
+    # First resizing (a=2)
+    img = resize_image(img, h, w, m=max_size, a=2)
+    ## Quantize image
+    img = kmean_quantization(img, num_colors)
+    # resizing
+    img = resize_image(img, h, w, m=max_size)
+    ## Palette association
+    return image_paletization(img, palette)

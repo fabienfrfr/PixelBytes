@@ -17,5 +17,5 @@ if __name__ == '__main__' :
     # push to hub
     push_dataset(dataset, 'ffurfaro/PixelBytes-Pokemon')
     # show
-    img = Image.open(io.BytesIO(dataset['image'][0]))
+    img = dataset['image'][0] # Image.open(io.BytesIO(dataset['image'][0]))
     plt.imshow(np.array(img)); plt.show()

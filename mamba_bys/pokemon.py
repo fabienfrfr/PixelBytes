@@ -7,7 +7,7 @@
 from .dataset import image_pixelization
 
 from datasets import load_dataset, Dataset
-import io, getpass
+import io, os, getpass
 from huggingface_hub import HfApi, login
 #from transformers import pipeline
 
@@ -95,25 +95,26 @@ def download_pkmn_miniature(url_pkmn):
         print(f"Download error")
         return None
 
-def create_pkmn_dataset(pkmn_dict):
-    # Init pipeline format
+def create_pkmn_dataset(pkmn_dict, image_dir="data"):
+    os.makedirs(image_dir, exist_ok=True)
+    # Init pipeline format (if you caption : not used here // old)
     #captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
-    def array_to_bytes(arr):
+    
+    def arraybytes_to_png(arr, number):
         pil_img = Image.fromarray(arr.astype('uint8'))
-        img_byte_arr = io.BytesIO()
-        pil_img.save(img_byte_arr, format='PNG')
-        img_byte_arr.seek(0)
-        return img_byte_arr.getvalue()
+        img_file_path = f"data/{number}.png" #img_byte_arr = io.BytesIO()
+        pil_img.save(img_file_path, format='PNG') #pil_img.save(img_byte_arr, format='PNG')
+        return img_file_path # img_byte_arr.getvalue()
     # Generate image captionning
     names = []
     captions = []
-    processed_images = []
-    for number, info in pkmn_dict.items():
+    #processed_images = []
+    for number, info in list(pkmn_dict.items())[:]:
+        print(number,info)
         try :
             # get img
             img = download_pkmn_miniature(info['url'])
-            img_byte_arr = array_to_bytes(img)
-            print(img_byte_arr)
+            pil_img = Image.fromarray(img.astype('uint8'))
             # get description [caption = captioner(pil_img)[0]['generated_text']] if not captionned ?
             soup_info = get_pkmn_info(info['name'])
             caption = simplify_character(soup_info["extract"])
@@ -121,15 +122,16 @@ def create_pkmn_dataset(pkmn_dict):
             # merge after verif
             names.append(info['name'])
             captions.append(caption)
-            processed_images.append(img_byte_arr)
+            img_file_path = os.path.join(image_dir, f"{number}.png") #img_byte_arr = io.BytesIO()
+            pil_img.save(img_file_path, format='PNG') #pil_img.save(img_byte_arr, format='PNG')
+            #processed_images.append(img_byte_arr.getvalue())
         except :
             print("Pkmn not found...")
-    # Create dataset
-    dataset = Dataset.from_dict({
-        "image": processed_images,
-        "caption": captions,
-        "name": names,
-    })
+    # Init image dataset
+    dataset = load_dataset("imagefolder", data_dir=image_dir)
+    # Add caption
+    dataset = dataset["train"].add_column("caption", captions)
+    dataset = dataset.add_column("name", names)
     return dataset
 
 def push_dataset(dataset, repo_name="ffurfaro/PixelBytes-Pokemon"):

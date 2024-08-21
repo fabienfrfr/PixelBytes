@@ -16,15 +16,13 @@ Objectives
 
 The main objectives of this project are:
 
-1. Train Mamba blocks to solve Othello (or potentially just Othelo).
+1. Construct captionning database.
 2. Implement image captioning using Mamba architecture.
 
-Othello
+Pokemon database
 ^^^^^^^
 
-For the Othello implementation, we will draw inspiration from the project:
-
-https://github.com/alxndrTL/othello_mamba
+https://huggingface.co/datasets/ffurfaro/PixelBytes-Pokemon
 
 Image Captioning
 ^^^^^^^^^^^^^^^^
