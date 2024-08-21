@@ -31,7 +31,7 @@ palette = np.array([
     [0x00, 0x40, 0x58], [0xf8, 0xd8, 0xf8], [0x78, 0x78, 0x78]
 ], dtype=np.uint8)
 
-##### Tokenizer
+##### Tokenizer (put in model files ?)
 def input_seq_construct(arr, dim=3, none_val=0, pix_sep=1, modal_sep=2):
     if dim % 2 == 0 : dim +=1
     pw = (dim-1)//2
@@ -100,7 +100,7 @@ class PixelBytesTokenizer(PreTrainedTokenizer):
         return [self._convert_token_to_id(token) for token in tokens]
 
     def convert_ids_to_tokens(self, ids):
-        return [self._convert_id_to_token(i) for i in ids]
+        return np.array([self._convert_id_to_token(i) for i in ids], dtype=object)
     
     def get_vocab(self):
         return self.vocab
@@ -138,6 +138,44 @@ def add_pixelbyte_columns(image_caption_dataset):
         pixelbytes.append(pixelbyte.tolist())
     # return new column
     return image_caption_dataset['train'].add_column("pixelbyte", pixelbytes)
+
+
+##### dataset
+def push_dataset(dataset, repo_name="ffurfaro/PixelBytes-Pokemon"):
+    token = getpass.getpass("Input Hugging Face Token: ")
+    # Connect and push to Hub
+    login(token)
+    dataset.push_to_hub(repo_name)
+
+##### Stream function
+
+def reconstruct_imgs(tokens_arr_obj, min_row_length=3, max_gap=50):
+    # Trouver les indices des tuples (RGB)
+    img_idx = np.where(np.vectorize(lambda x: isinstance(x, tuple))(tokens_arr_obj))[0]
+    if len(img_idx) < min_row_length: return []
+    # Trouver les grands écarts qui séparent les images
+    big_gaps = np.where(np.diff(img_idx) > max_gap)[0] + 1
+    image_splits = np.split(img_idx, big_gaps)
+    images = []
+    for split in image_splits:
+        if len(split) < min_row_length: continue
+        # Find gap between image
+        row_breaks = np.concatenate(([0], np.where(np.diff(split) > 1)[0] + 1, [len(split)]))
+        row_lengths = np.diff(row_breaks)
+        # Row valid filter
+        valid_rows = row_lengths >= min_row_length
+        if not np.any(valid_rows): continue
+        most_common_length = np.bincount(row_lengths[valid_rows]).argmax()
+        # Create images
+        num_rows = np.sum(valid_rows)
+        img = np.full((num_rows, most_common_length, 3), 255, dtype=np.uint8)
+        valid_indices = split[np.concatenate([np.arange(start, end) for start, end, valid 
+                                              in zip(row_breaks[:-1], row_breaks[1:], valid_rows) 
+                                              if valid])]
+        img_flat = img.reshape(-1, 3)
+        img_flat[:len(valid_indices)] = [tokens_arr_obj[i] for i in valid_indices]
+        images.append({'image': img, 'start_index': split[0], 'end_index': split[-1]})
+    return images
 
 ##### Image function
 def image_autocrop(img) :
@@ -207,9 +245,3 @@ def image_pixelization(img, palette, max_size=25):
     img = resize_image(img, h, w, m=max_size)
     ## Palette association
     return image_paletization(img, palette)
-
-def push_dataset(dataset, repo_name="ffurfaro/PixelBytes-Pokemon"):
-    token = getpass.getpass("Input Hugging Face Token: ")
-    # Connect and push to Hub
-    login(token)
-    dataset.push_to_hub(repo_name)
