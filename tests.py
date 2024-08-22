@@ -19,7 +19,10 @@ if __name__ == '__main__' :
 
     # train using
     hf_dataset = load_dataset("ffurfaro/PixelBytes-Pokemon")
-    dataset = PxByDataset(hf_dataset, seq_length=256, stride=64)
+    ds = hf_dataset["train"].train_test_split(test_size=0.1)
+    
+    train_dataset = PxByDataset(ds["train"]["pixelbyte"], seq_length=256, stride=64)
+    test_dataset = PxByDataset(ds["test"]["pixelbyte"], seq_length=256, stride=64)
     
     pixelbyte = PixelBytesTokenizer()
     vocab_size = len(pixelbyte.vocab)
@@ -32,11 +35,16 @@ if __name__ == '__main__' :
     # Utilisation
     trainer = Trainer(
         model=model,
-        dataset=dataset,
+        train_dataset=train_dataset,
+        test_dataset=test_dataset,
         batch_size=32,
         learning_rate=0.001,
-        num_epochs=10,
-        save_dir='model'
+        num_epochs=12,
+        save_dir='model_checkpoints',
+        compile_model=True,
+        model_name="SimpleSeqModel",
+        dataset_name="PixelBytes-Pokemon",
+        eval_every=5,
     )
     
     trainer.train()

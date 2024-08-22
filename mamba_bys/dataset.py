@@ -16,6 +16,43 @@ from skimage import color
 from tqdm import tqdm
 
 
+##### dataset
+class PxByDataset(Dataset):
+    def __init__(self, pxby_columns, seq_length=256, stride=64):
+        self.data = pxby_columns
+        self.seq_length = seq_length
+        self.stride = stride
+        self.sub_sequences = self._create_sub_sequences()
+
+    def _create_sub_sequences(self):
+        sub_sequences = []
+        for sequence in self.data:
+            sequence = torch.tensor(sequence, dtype=torch.long)
+            L, H, W = sequence.shape
+            # Define index tensor for all subseq
+            starts = torch.arange(0, max(L - self.seq_length, 1), self.stride)
+            indices = starts[:, None] + torch.arange(self.seq_length + 1)
+            indices = indices.clamp(max=L-1)
+            # Extract and construct all input-target
+            sub_seqs = sequence[indices]
+            inputs = sub_seqs[:, :-1]
+            targets = sub_seqs[:, -1, H//2, W//2]
+            sub_sequences.extend(zip(inputs, targets))
+        return sub_sequences
+
+    def __len__(self):
+        return len(self.sub_sequences)
+
+    def __getitem__(self, idx):
+        return self.sub_sequences[idx]
+
+def push_dataset(dataset, repo_name="ffurfaro/PixelBytes-Pokemon"):
+    token = getpass.getpass("Input Hugging Face Token: ")
+    # Connect and push to Hub
+    login(token)
+    dataset.push_to_hub(repo_name)
+
+
 ## Construct pixelbytes columns
 # Palette NES personnalisée
 palette = np.array([
@@ -90,43 +127,6 @@ def add_pixelbyte_columns(image_caption_dataset):
         pixelbytes.append(pixelbyte.tolist())
     # return new column
     return image_caption_dataset['train'].add_column("pixelbyte", pixelbytes)
-
-##### dataset
-
-class PxByDataset(Dataset):
-    def __init__(self, hf_dataset, seq_length=256, stride=64):
-        self.data = hf_dataset["train"]["pixelbyte"]
-        self.seq_length = seq_length
-        self.stride = stride
-        self.sub_sequences = self._create_sub_sequences()
-
-    def _create_sub_sequences(self):
-        sub_sequences = []
-        for sequence in self.data:
-            sequence = torch.tensor(sequence, dtype=torch.long)
-            L, H, W = sequence.shape
-            # Define index tensor for all subseq
-            starts = torch.arange(0, max(L - self.seq_length, 1), self.stride)
-            indices = starts[:, None] + torch.arange(self.seq_length + 1)
-            indices = indices.clamp(max=L-1)
-            # Extract and construct all input-target
-            sub_seqs = sequence[indices]
-            inputs = sub_seqs[:, :-1]
-            targets = sub_seqs[:, -1, H//2, W//2]
-            sub_sequences.extend(zip(inputs, targets))
-        return sub_sequences
-
-    def __len__(self):
-        return len(self.sub_sequences)
-
-    def __getitem__(self, idx):
-        return self.sub_sequences[idx]
-
-def push_dataset(dataset, repo_name="ffurfaro/PixelBytes-Pokemon"):
-    token = getpass.getpass("Input Hugging Face Token: ")
-    # Connect and push to Hub
-    login(token)
-    dataset.push_to_hub(repo_name)
 
 ##### Image function
 def image_autocrop(img) :
