@@ -7,6 +7,7 @@
 import torch
 from torch import nn
 from dataclasses import dataclass
+
 try :
     from mamba_ssm.modules.mamba_simple import Mamba
 except :
@@ -19,7 +20,8 @@ class MambaConfig:
     d_conv : int = 4 # The convolutionnal windows
     expand: int = 2 # E in paper/comments
     depth : int = 8 # The number of residual S6 layers
-    vocab_size : int # ASCII bytes
+    vocab_size : int = 110 # ASCII bytes + NES Pixel
+
 
 class BysMamba(nn.Module):
     def __init__(self, config: MambaConfig):
@@ -100,9 +102,4 @@ class SimpleAttentionModel(nn.Module):
             embedded = self.norm_layers[i](attn_output + embedded)  # residual
         output = self.fc(embedded[:, -1, :])  # last output
         return output
-
-
-
-
-
 
