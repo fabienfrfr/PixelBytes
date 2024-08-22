@@ -22,14 +22,31 @@ class MambaConfig:
     depth : int = 8 # The number of residual S6 layers
     vocab_size : int = 110 # ASCII bytes + NES Pixel
 
+class PxByEmbed(nn.Module):
+    def __init__(self, vocab_size, dim, k=3):
+        super().__init__()
+        self.d_model = dim
+        # classic text embedding
+        self.linear_embedding = nn.Embedding(vocab_size, dim)
+        # local embedding patch (3D in future)
+        self.patch_embedding = nn.Conv2d(in_channels=dim, out_channels=dim, 
+                                         kernel_size=k, stride=1, padding=0)
+    def forward(self, x):
+        # shape : x : (B, L, M=3, N=3) : long
+        B,L,M,N = x.shape
+        dim = self.d_model
+        # embedding
+        x = self.linear_embedding(x.view(B*L, M, N)).squeeze()
+        x = x.permute(0, 3, 1, 2)  # (batch_size*L, embedding_dim, height, width)
+        x = ((x[:,:,M//2,N//2].squeeze() + self.patch_embedding(x)).view(B, L, dim))/2 # (B,L,D)
+        return x
 
 class BysMamba(nn.Module):
     def __init__(self, config: MambaConfig):
         super().__init__()
         self.config = config
         # text & image(t) embedding
-        self.linear_embedding = nn.Embedding(config.vocab_size, config.dim)
-        self.patch_embedding = nn.Conv2d(in_channels=config.dim, out_channels=config.dim, kernel_size=3, stride=1, padding=0) # 3D in future
+        self.pxby_embedding = PxByEmbed(config.vocab_size, config.dim)
         # mamba part
         self.in_mamba = Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand,)
         self.layers = nn.ModuleList([Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand,) for _ in range(config.depth)])
@@ -38,13 +55,9 @@ class BysMamba(nn.Module):
         self.lm_head = nn.Linear(config.dim, config.vocab_size, bias=False)
 
     def forward(self, x):
-        # shape : x : (B, L, M=3, N=3) : long
-        B,L,M,N = x.shape
-        dim = self.config.dim
-        # embedding
-        x = self.linear_embedding(x.view(B*L, M, N)).squeeze()
-        x = x.permute(0, 3, 1, 2)  # (batch_size*L, embedding_dim, height, width)
-        x = ((x[:,:,M//2,N//2].squeeze() + self.patch_embedding(x)).view(B, L, dim))/2 # (B,L,D)
+        ## shape : x : (B, L, M, N) : long
+        # pixelbyte embedding
+        x = self.pxby_embedding(x)
         # bidirectional mamba input
         x += (self.in_mamba(x) + self.in_mamba(torch.flip(x, dims=[1])).flip([1]))/2
         # mamba intermediate layers
