@@ -7,12 +7,16 @@
 import getpass
 from huggingface_hub import login, HfApi, HfFolder
 
+from torch.utils.data import Dataset
+import torch
+
 import numpy as np, pylab as plt
 from numpy.lib.stride_tricks import as_strided
 from skimage import color
-from transformers import PreTrainedTokenizer
 from tqdm import tqdm
 
+
+## Construct pixelbytes columns
 # Palette NES personnalisée
 palette = np.array([
     [0x00, 0x00, 0x00], [0xfc, 0xfc, 0xfc], [0xf8, 0xf8, 0xf8], [0xbc, 0xbc, 0xbc],
@@ -31,7 +35,6 @@ palette = np.array([
     [0x00, 0x40, 0x58], [0xf8, 0xd8, 0xf8], [0x78, 0x78, 0x78]
 ], dtype=np.uint8)
 
-##### Tokenizer (put in model files ?)
 def input_seq_construct(arr, dim=3, none_val=0, pix_sep=1, modal_sep=2):
     if dim % 2 == 0 : dim +=1
     pw = (dim-1)//2
@@ -53,57 +56,6 @@ def input_seq_construct(arr, dim=3, none_val=0, pix_sep=1, modal_sep=2):
     result[:, :, -pw, :] = none_val
     # flatten
     return result.reshape(-1, dim, dim)
-
-class PixelBytesTokenizer(PreTrainedTokenizer):
-    def __init__(self, vocab=None):
-        if vocab == None :
-            Pixelbytes_tokens =  [
-                ## Bytes (ASCII - UTF8)
-                b'\x00', b'\t', b'\n', b' ', b'"', b"'", b'(', b')', b'*', b',', b'-', b'+', 
-                b'.', b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'\xc2', 
-                b'\xa0', b':', b'[', b']', b';', b'/', b'%', b'!', b'a', b'b', b'c', b'd', b'e', 
-                b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', 
-                b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
-                ## Pixel (RGB NES Palette)
-                (0x00, 0x00, 0x00), (0xfc, 0xfc, 0xfc), (0xf8, 0xf8, 0xf8), (0xbc, 0xbc, 0xbc),
-                (0x7c, 0x7c, 0x7c), (0xa4, 0xe4, 0xfc), (0x3c, 0xbc, 0xfc), (0x00, 0x78, 0xf8),
-                (0x00, 0x00, 0xfc), (0xb8, 0xb8, 0xf8), (0x68, 0x88, 0xfc), (0x00, 0x58, 0xf8),
-                (0x00, 0x00, 0xbc), (0xd8, 0xb8, 0xf8), (0x98, 0x78, 0xf8), (0x68, 0x44, 0xfc),
-                (0x44, 0x28, 0xbc), (0xf8, 0xb8, 0xf8), (0xf8, 0x78, 0xf8), (0xd8, 0x00, 0xcc),
-                (0x94, 0x00, 0x84), (0xf8, 0xa4, 0xc0), (0xf8, 0x58, 0x98), (0xe4, 0x00, 0x58),
-                (0xa8, 0x00, 0x20), (0xf0, 0xd0, 0xb0), (0xf8, 0x78, 0x58), (0xf8, 0x38, 0x00),
-                (0xa8, 0x10, 0x00), (0xfc, 0xe0, 0xa8), (0xfc, 0xa0, 0x44), (0xe4, 0x5c, 0x10),
-                (0x88, 0x14, 0x00), (0xf8, 0xd8, 0x78), (0xf8, 0xb8, 0x00), (0xac, 0x7c, 0x00),
-                (0x50, 0x30, 0x00), (0xd8, 0xf8, 0x78), (0xb8, 0xf8, 0x18), (0x00, 0xb8, 0x00),
-                (0x00, 0x78, 0x00), (0xb8, 0xf8, 0xb8), (0x58, 0xd8, 0x54), (0x00, 0xa8, 0x00),
-                (0x00, 0x68, 0x00), (0xb8, 0xf8, 0xd8), (0x58, 0xf8, 0x98), (0x00, 0xa8, 0x44),
-                (0x00, 0x58, 0x00), (0x00, 0xfc, 0xfc), (0x00, 0xe8, 0xd8), (0x00, 0x88, 0x88),
-                (0x00, 0x40, 0x58), (0xf8, 0xd8, 0xf8), (0x78, 0x78, 0x78)]
-            vocab = {Pixelbytes_tokens[i] : i for i in range(len(Pixelbytes_tokens))}
-        self.vocab = vocab
-        super().__init__()
-        self.ids_to_tokens = {v: k for k, v in vocab.items()}
-
-    def _tokenize(self, text):
-        # Implémentez votre logique de tokenization ici
-        # Par exemple, diviser le texte en caractères et les mapper aux IDs
-        tokens = list(text)
-        return tokens
-
-    def _convert_token_to_id(self, token):
-        return self.vocab.get(token, self.vocab.get(b'[UNK]'))
-
-    def _convert_id_to_token(self, index):
-        return self.ids_to_tokens.get(index, b'[UNK]')
-
-    def convert_tokens_to_ids(self, tokens):
-        return [self._convert_token_to_id(token) for token in tokens]
-
-    def convert_ids_to_tokens(self, ids):
-        return np.array([self._convert_id_to_token(i) for i in ids], dtype=object)
-    
-    def get_vocab(self):
-        return self.vocab
 
 def add_pixelbyte_columns(image_caption_dataset):
     tokenizer = PixelBytesTokenizer()
@@ -139,43 +91,42 @@ def add_pixelbyte_columns(image_caption_dataset):
     # return new column
     return image_caption_dataset['train'].add_column("pixelbyte", pixelbytes)
 
-
 ##### dataset
+
+class PxByDataset(Dataset):
+    def __init__(self, hf_dataset, seq_length=256, stride=64):
+        self.data = hf_dataset["train"]["pixelbyte"]
+        self.seq_length = seq_length
+        self.stride = stride
+        self.sub_sequences = self._create_sub_sequences()
+
+    def _create_sub_sequences(self):
+        sub_sequences = []
+        for sequence in self.data:
+            sequence = torch.tensor(sequence, dtype=torch.long)
+            L, H, W = sequence.shape
+            # Define index tensor for all subseq
+            starts = torch.arange(0, max(L - self.seq_length, 1), self.stride)
+            indices = starts[:, None] + torch.arange(self.seq_length + 1)
+            indices = indices.clamp(max=L-1)
+            # Extract and construct all input-target
+            sub_seqs = sequence[indices]
+            inputs = sub_seqs[:, :-1]
+            targets = sub_seqs[:, -1, H//2, W//2]
+            sub_sequences.extend(zip(inputs, targets))
+        return sub_sequences
+
+    def __len__(self):
+        return len(self.sub_sequences)
+
+    def __getitem__(self, idx):
+        return self.sub_sequences[idx]
+
 def push_dataset(dataset, repo_name="ffurfaro/PixelBytes-Pokemon"):
     token = getpass.getpass("Input Hugging Face Token: ")
     # Connect and push to Hub
     login(token)
     dataset.push_to_hub(repo_name)
-
-##### Stream function
-
-def reconstruct_imgs(tokens_arr_obj, min_row_length=3, max_gap=50):
-    # Trouver les indices des tuples (RGB)
-    img_idx = np.where(np.vectorize(lambda x: isinstance(x, tuple))(tokens_arr_obj))[0]
-    if len(img_idx) < min_row_length: return []
-    # Trouver les grands écarts qui séparent les images
-    big_gaps = np.where(np.diff(img_idx) > max_gap)[0] + 1
-    image_splits = np.split(img_idx, big_gaps)
-    images = []
-    for split in image_splits:
-        if len(split) < min_row_length: continue
-        # Find gap between image
-        row_breaks = np.concatenate(([0], np.where(np.diff(split) > 1)[0] + 1, [len(split)]))
-        row_lengths = np.diff(row_breaks)
-        # Row valid filter
-        valid_rows = row_lengths >= min_row_length
-        if not np.any(valid_rows): continue
-        most_common_length = np.bincount(row_lengths[valid_rows]).argmax()
-        # Create images
-        num_rows = np.sum(valid_rows)
-        img = np.full((num_rows, most_common_length, 3), 255, dtype=np.uint8)
-        valid_indices = split[np.concatenate([np.arange(start, end) for start, end, valid 
-                                              in zip(row_breaks[:-1], row_breaks[1:], valid_rows) 
-                                              if valid])]
-        img_flat = img.reshape(-1, 3)
-        img_flat[:len(valid_indices)] = [tokens_arr_obj[i] for i in valid_indices]
-        images.append({'image': img, 'start_index': split[0], 'end_index': split[-1]})
-    return images
 
 ##### Image function
 def image_autocrop(img) :
