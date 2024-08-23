@@ -51,59 +51,62 @@ class PxByEmbed(nn.Module):
 @dataclass
 class ModelConfig:
     dim: int # The input dimension of the input tensor. (embedding dim output)
+    bidirectional : bool = True # For RNN or SSM model
     d_state: int = 16 #16 # The dimension of the state space model.
     d_conv : int = 4 # The convolutionnal windows
     expand: int = 2 # E in paper/comments
     depth : int = 3 # The number of residual layers
     vocab_size : int = 113 # ASCII bytes + NES Pixel
 
+
 class bMamba(nn.Module):
     def __init__(self, config: ModelConfig):
         super().__init__()
-        self.config = config
-        # text & image(t) embedding
         self.pxby_embedding = PxByEmbed(config.vocab_size, config.dim)
-        # mamba part
-        self._mamba = Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand,)
-        self.layers = nn.ModuleList([Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand,) 
-                                     for _ in range(max(1,config.depth-1))])
-        # norm & output
+        # First Mamba layer (bidirectional or not based on config)
+        self._mamba = Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand)
+        # Remaining Mamba layers
+        self.layers = nn.ModuleList([
+            Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand)
+            for _ in range(config.depth - 1)
+        ]) if config.depth > 1 else None
         self.norm = nn.LayerNorm(config.dim)
         self.lm_head = nn.Linear(config.dim, config.vocab_size, bias=False)
+        self.bidirectional = config.bidirectional
 
     def forward(self, x):
-        # pixelbyte embedding
         x = self.pxby_embedding(x)
-        # bidirectional mamba input & norm
-        x = self._mamba(x) + self._mamba(torch.flip(x, dims=[1])).flip([1])
+        # Bidirectional Mamba for the first layer
+        if self.bidirectional: x = self._mamba(x) + self._mamba(torch.flip(x, dims=[1])).flip([1])
+        else: x = self._mamba(x)
         x = self.norm(x)
-        # mamba intermediate layers
-        for layer in self.layers:
-            x = layer(x)
-        # prediction output
-        x = self.lm_head(x) # probability
-        return x
+        # Remaining Mamba layers
+        if self.layers:
+            for layer in self.layers: x = layer(x)
+        return self.lm_head(x)
 
 ### Comparizon model
 # simple lstm (like simplified PixelRNN)
 class SimpleRNNModel(nn.Module):
-    def __init__(self, config: ModelConfig): #vocab_size, embedding_dim, hidden_dim):
+    def __init__(self, config: ModelConfig):
         super(SimpleRNNModel, self).__init__()
-        self.embedding_dim = config.dim
-        self.hidden_dim = config.d_state
-        self.nlayer = config.depth
-        self.vocab = config.vocab_size
-        # model
-        self.embedding = PxByEmbed(self.vocab, self.embedding_dim)
-        self.lstm = nn.LSTM(self.embedding_dim, self.hidden_dim, num_layers=self.nlayer, batch_first=True)
-        self.fc = nn.Linear(self.hidden_dim, self.vocab)
+        self.embedding = PxByEmbed(config.vocab_size, config.dim)
+        # First LSTM layer (bidirectional or not based on config)
+        self.first_lstm = nn.LSTM(input_size=config.dim,
+            hidden_size=config.d_state // (2 if config.bidirectional else 1),
+            num_layers=1,batch_first=True,bidirectional=config.bidirectional)
+        # Remaining LSTM layers (if any)
+        input_size = config.d_state if config.bidirectional else config.d_state // 2
+        self.remaining_lstm = nn.LSTM( input_size=input_size,hidden_size=config.d_state, 
+            num_layers=config.depth - 1, batch_first=True) if config.depth > 1 else None
+        # Fully connected layer
+        self.fc = nn.Linear(config.d_state, config.vocab_size)
 
     def forward(self, x):
-        # x shape: [batch_size, seq_length, 3, 3]
-        embedded = self.embedding(x)  # [batch_size, seq_length, embedding_dim]
-        lstm_out, _ = self.lstm(embedded)
-        output = self.fc(lstm_out[:, -1, :])  # Use only the last output
-        return output
+        embedded = self.embedding(x)
+        first_out, _ = self.first_lstm(embedded)
+        lstm_out = first_out if self.remaining_lstm is None else self.remaining_lstm(first_out)[0]
+        return self.fc(lstm_out[:, -1, :])
 
 # simple attention (like VERY simplified GPeT)
 class SimpleTransformerModel(nn.Module):

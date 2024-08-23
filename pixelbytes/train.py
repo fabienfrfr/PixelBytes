@@ -31,26 +31,20 @@ class Trainer:
 
     def train_and_evaluate(self):
         best_test_loss = float('inf')
+        test_metrics = self._evaluate(self.test_loader)
+        self.results.append({'epoch': 0, 'train_eval_loss' : test_metrics['loss'], 'train_accuracy': test_metrics['accuracy'], 'train_f1': test_metrics['f1'],
+                             'test_loss': test_metrics['loss'],'test_accuracy': test_metrics['accuracy'], 'test_f1': test_metrics['f1']})
         for epoch in tqdm(range(self.num_epochs), desc="Training"):
             train_loss = self._train_epoch()
-            
             if (epoch + 1) % self.eval_every == 0 or epoch == self.num_epochs - 1:
                 train_metrics = self._evaluate(self.train_loader, max_samples=self.test_size)
                 test_metrics = self._evaluate(self.test_loader)
-                self.results.append({
-                    'epoch': epoch + 1, 
-                    'train_loss': train_loss,
-                    'train_eval_loss': train_metrics['loss'],
-                    'train_accuracy': train_metrics['accuracy'],
-                    'train_f1': train_metrics['f1'],
-                    'test_loss': test_metrics['loss'],
-                    'test_accuracy': test_metrics['accuracy'],
-                    'test_f1': test_metrics['f1']})
-                
+                self.results.append({'epoch': epoch + 1, 'train_eval_loss': train_metrics['loss'],'train_accuracy': train_metrics['accuracy'], 'train_f1': train_metrics['f1'],
+                                     'test_loss': test_metrics['loss'],'test_accuracy': test_metrics['accuracy'], 'test_f1': test_metrics['f1']})       
                 if test_metrics['loss'] < best_test_loss:
                     best_test_loss = test_metrics['loss']
                     torch.save(self.model.state_dict(), os.path.join(self.save_dir, 'best_model.pth'))
-                tqdm.write(f"Epoch {epoch+1}: Train Loss: {train_loss:.4f}, "
+                tqdm.write(f"\nEpoch {epoch+1}: Train Loss: {train_loss:.4f}, "
                            f"Test Loss: {test_metrics['loss']:.4f}, "
                            f"Test Acc: {test_metrics['accuracy']:.2f}%")
 
