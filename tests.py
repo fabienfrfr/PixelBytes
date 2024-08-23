@@ -5,11 +5,7 @@
 TESTS FILE
 """
 
-from pixelbytes.model import *
-from pixelbytes.train import *
-from pixelbytes.dataset import *
-from pixelbytes.tokenizer import *
-
+from pixelbytes import *
 from datasets import load_dataset
 
 
@@ -23,6 +19,19 @@ if __name__ == '__main__' :
     train_dataset = PxByDataset(ds["train"]["pixelbyte"], seq_length=256, stride=128)
     test_dataset = PxByDataset(ds["test"]["pixelbyte"], seq_length=256, stride=128)
     
+    """
+    # Exemple d'utilisation
+    model = SimpleRNNModel(config)
+    model.load_state_dict(torch.load('chemin_vers_votre_modele.pth'))
+    generator = SequenceGenerator(model, config) ## not same config !
+    
+    start_sequence = [[[0,0,0], [1,2,0], [0,0,0]], [[0,0,0], [2,3,0], [0,0,0]], [[0,0,0], [3,4,0], [0,0,0]]]
+    print("Génération de séquence en streaming:")
+    for token_id in generator.generate(start_sequence, max_length=100, temperature=0.7):
+        print(token_id, end=' ')
+    print()
+    """
+
     pixelbyte = PixelBytesTokenizer()
     vocab_size = len(pixelbyte.vocab); print(vocab_size)
     embedding_dim = 81
@@ -30,17 +39,10 @@ if __name__ == '__main__' :
     n_layer = 1
     
     config = ModelConfig(dim=embedding_dim, d_state=hidden_dim, depth=n_layer, vocab_size=vocab_size)
-    #model = SimpleRNNModel(config)
-    model = SimpleTransformerModel(config)
-    """
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    model = SimpleRNNModel(config)
+    #model = SimpleTransformerModel(config)
+
     
-    for inputs, targets in tqdm(train_loader, desc="Training"):
-        outputs = model(inputs)
-        print(inputs[:,-1,1,1], outputs.max(1)[1])
-        break
-    
-    """
     # Utilisation
     trainer = Trainer(
         model=model,
@@ -57,6 +59,16 @@ if __name__ == '__main__' :
     
     trainer.train_and_evaluate()
     
+
+    """
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    
+    for inputs, targets in tqdm(train_loader, desc="Training"):
+        outputs = model(inputs)
+        print(inputs[:,-1,1,1], outputs.max(1)[1])
+        break
+    
+    """
     """
     ## Construct Pokemon datasets
     # get miniatures

@@ -19,6 +19,7 @@ class Trainer:
         self.model = model.to(self.device)
         self.save_dir = os.path.join(save_dir, f"{model_name}_{dataset_name}")
         os.makedirs(self.save_dir, exist_ok=True)
+        
         self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         self.criterion = nn.CrossEntropyLoss()
@@ -26,31 +27,41 @@ class Trainer:
         self.num_epochs = num_epochs
         self.eval_every = eval_every
         self.results = []
+        self.test_size = len(test_dataset)
 
     def train_and_evaluate(self):
-        best_loss = float('inf')
-        test_loss, accuracy, f1 = self._evaluate() # random output
-        self.results.append({'epoch': 0, 'train_loss': test_loss, 'test_loss': test_loss, 'accuracy': accuracy, 'f1_score': f1})
-        for epoch in range(self.num_epochs):
+        best_test_loss = float('inf')
+        for epoch in tqdm(range(self.num_epochs), desc="Training"):
             train_loss = self._train_epoch()
+            
             if (epoch + 1) % self.eval_every == 0 or epoch == self.num_epochs - 1:
-                test_loss, accuracy, f1 = self._evaluate()
-                self.results.append({'epoch': epoch + 1, 'train_loss': train_loss, 'test_loss': test_loss, 'accuracy': accuracy, 'f1_score': f1})
-                if test_loss < best_loss:
-                    best_loss = test_loss
-                    self._save_model('best_model.pth')
-            print(f"Epoch {epoch+1}/{self.num_epochs}, Train Loss: {train_loss:.4f}")
-        # Final evaluation
-        if self.num_epochs % self.eval_every != 0:  # Évaluer une dernière fois si pas fait
-            test_loss, accuracy, f1 = self._evaluate()
-            self.results.append({'epoch': self.num_epochs, 'train_loss': train_loss, 'test_loss': test_loss, 'accuracy': accuracy, 'f1_score': f1})
-            print(f"Final Evaluation - Test Loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%, F1: {f1:.4f}")
-        self._save_results()
+                train_metrics = self._evaluate(self.train_loader, max_samples=self.test_size)
+                test_metrics = self._evaluate(self.test_loader)
+                self.results.append({
+                    'epoch': epoch + 1, 
+                    'train_loss': train_loss,
+                    'train_eval_loss': train_metrics['loss'],
+                    'train_accuracy': train_metrics['accuracy'],
+                    'train_f1': train_metrics['f1'],
+                    'test_loss': test_metrics['loss'],
+                    'test_accuracy': test_metrics['accuracy'],
+                    'test_f1': test_metrics['f1']})
+                
+                if test_metrics['loss'] < best_test_loss:
+                    best_test_loss = test_metrics['loss']
+                    torch.save(self.model.state_dict(), os.path.join(self.save_dir, 'best_model.pth'))
+                tqdm.write(f"Epoch {epoch+1}: Train Loss: {train_loss:.4f}, "
+                           f"Test Loss: {test_metrics['loss']:.4f}, "
+                           f"Test Acc: {test_metrics['accuracy']:.2f}%")
+
+        torch.save(self.model.state_dict(), os.path.join(self.save_dir, 'last_model.pth'))
+        pd.DataFrame(self.results).to_csv(os.path.join(self.save_dir, 'training_results.csv'), index=False)
+        print("Training completed. Results and models saved.")
 
     def _train_epoch(self):
         self.model.train()
         total_loss = 0
-        for inputs, targets in tqdm(self.train_loader, desc="Training"):
+        for inputs, targets in self.train_loader:
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
@@ -60,33 +71,24 @@ class Trainer:
             total_loss += loss.item()
         return total_loss / len(self.train_loader)
 
-    def _evaluate(self):
+    def _evaluate(self, data_loader, max_samples=None):
         self.model.eval()
-        total_loss, correct, total = 0, 0, 0
+        total_loss = 0
         all_targets, all_predictions = [], []
+        samples_processed = 0
         with torch.no_grad():
-            for inputs, targets in self.test_loader:
+            for inputs, targets in data_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, targets)
                 total_loss += loss.item()
                 _, predicted = outputs.max(1)
-                total += targets.size(0)
-                correct += predicted.eq(targets).sum().item()
                 all_targets.extend(targets.cpu().numpy())
                 all_predictions.extend(predicted.cpu().numpy())
-        
-        avg_loss = total_loss / len(self.test_loader)
-        accuracy = 100. * correct / total
+                samples_processed += targets.size(0)
+                if max_samples and samples_processed >= max_samples:
+                    break
+        avg_loss = total_loss / (samples_processed // data_loader.batch_size)
+        accuracy = 100. * sum(p == t for p, t in zip(all_predictions, all_targets)) / len(all_targets)
         f1 = f1_score(all_targets, all_predictions, average='weighted')
-        print(f"Test Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%, F1: {f1:.4f}")
-        return avg_loss, accuracy, f1
-
-    def _save_model(self, filename):
-        path = os.path.join(self.save_dir, filename)
-        torch.save(self.model.state_dict(), path)
-        print(f"Model saved to {path}")
-
-    def _save_results(self):
-        pd.DataFrame(self.results).to_csv(os.path.join(self.save_dir, 'training_results.csv'), index=False)
-        print("Training results saved.")
+        return {'loss': avg_loss, 'accuracy': accuracy, 'f1': f1}
