@@ -1,104 +1,71 @@
 .. -*- mode: rst -*-
 
 ==========
-Mamba-Bys
+PixelBytes
 ==========
 
-Mamba-Bys is a Python project aimed at testing byte bidirectional Mamba models (particularly those with shared SSMs and token-free) on tasks beyond multimodal processing.
+PixelByte is an innovative Python project designed to simultaneously generate text and images pixel by pixel in the form of sequences. The goal is to explore a unified embedding that allows for coherent multimodal generation.
 
-Hypothesis
-----------
+Context and Proposed Architecture
+----------------------------------
 
-Bidirectional byte models allow for greater generalization compared to unidirectional models with using one input for all modality.
+### Theoretical Foundations
+- **Image Transformer**: [Pixel-by-pixel image generation](https://arxiv.org/abs/1802.05751)
+- **Bi-Mamba+**: [Bidirectional model for time series forecasting](https://arxiv.org/abs/2404.15772)
+- **MambaByte**: [Token-free selective state space model](https://arxiv.org/abs/2401.13660)
+
+### Key Concept
+The PixelByte model generates mixed sequences of text and images. It aims to:
+- Handle transitions between text and image with line breaks (ASCII 0A).
+- Maintain consistency in the dimensions of generated images.
+- Master the "copy" task to reproduce complex patterns.
+
+This project utilizes the power of two T4 GPUs from Kaggle to experiment with advanced architectures and large datasets, tackling the challenges of unified multimodal generation.
 
 Objectives
-----------
+---------
 
 The main objectives of this project are:
 
-1. Construct captionning database.
-2. Implement image captioning using Mamba architecture.
+1. Implement a multimodal sequence generation model (PixelByte) using the Mamba architecture.
+2. Test the model on tasks beyond traditional multimodal processing, including image generation and image captioning.
+3. Explore the model's ability to seamlessly manage transitions between text and image modalities.
 
-Pokemon database
-^^^^^^^
+Project Resources
+-----------------
 
-https://huggingface.co/datasets/ffurfaro/PixelBytes-Pokemon
+### Dataset
+For this project, we will use the **PixelBytes-Pokemon** dataset, specifically designed for this multimodal generation task. This dataset, created by the author of this notebook, is available on Hugging Face: [PixelBytes-Pokemon](https://huggingface.co/datasets/ffurfaro/PixelBytes-Pokemon). It contains sequences of text and Pokémon images, encoded to enable training of our PixelByte model on multimodal data.
+
+### Implementation
+The model implementation and training scripts are available in this GitHub repository **PixelBytes**: [PixelBytes](https://github.com/fabienfrfr/PixelBytes). This repository contains the source code necessary to reproduce the experiments, as well as detailed instructions on configuring and using the PixelByte model.
+
+
+### Citation
+If you use this project in your research, please cite it as follows:
+
+.. code-block:: bibtex
+
+    @misc{pixelbytes,
+        author = {Fabien Furfaro},
+        title = {PixelBytes: Catching Insights in Unified Multimodal Sequences},
+        year = {2024},
+        publisher = {GitHub},
+        journal = {GitHub repository},
+        url = {https://github.com/fabienfrfr/PixelBytes}
+    }
+
 
 Image Captioning
-^^^^^^^^^^^^^^^^
+----------------
 
-In the case of image captioning, we will assign "image tokens" and "text tokens" to test scenarios where input modalities are mixed. (This approach may be somewhat complex.)
-
+In the context of image generation, we assign "image tokens" and "text tokens" to test scenarios where input modalities are mixed, exploring a more complex approach to multimodal processing.
 
 Getting Started
 ---------------
 
-(Add installation instructions and basic usage examples here)
+[Add your getting started instructions here]
 
-Training in a Notebook
-----------------------
-
-To facilitate experimentation and visualization, we recommend using Jupyter notebooks for training. Here are some suggested steps for setting up a training notebook:
-
-1. **Environment Setup**:
-   
-   - Import necessary libraries (PyTorch, etc.)
-   - Set up CUDA if using GPU acceleration
-
-2. **Data Preparation**:
-   
-   - For Othello: Create a dataset of game states and moves
-   - For Image Captioning: Prepare image-text pairs dataset
-
-3. **Model Definition**:
-   
-   - Define the Mamba model architecture
-
-4. **Training Loop**:
-   
-   - Define loss function and optimizer
-   - Implement training and validation loops
-   - Add checkpointing for model saving
-
-5. **Visualization**:
-   
-   - Plot training and validation losses
-   - For Othello: Visualize game board states
-   - For Image Captioning: Display sample captions for test images
-
-6. **Hyperparameter Tuning**:
-   
-   - Use tools for hyperparameter optimization
-
-7. **Evaluation**:
-   
-   - Implement metrics specific to each task (e.g., win rate for Othello, BLEU score for captioning)
-
-Example Notebook Structure::
-
-    # 1. Setup
-    import torch
-    from mamba_bis import Mamba
-    
-    # 2. Data Preparation
-    # (Task-specific data loading code)
-    
-    # 3. Model Definition
-    model = Mamba(...)
-    
-    # 4. Training Loop
-    for epoch in range(num_epochs):
-        # Training code
-        # Validation code
-    
-    # 5. Visualization
-    # (Plotting code)
-    
-    # 6. Hyperparameter Tuning
-    # (Optuna setup if needed)
-    
-    # 7. Evaluation
-    # (Task-specific evaluation code)
 
 Contributing
 ------------

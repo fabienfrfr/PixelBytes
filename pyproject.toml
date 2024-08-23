@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mamba-bys"
+name = "pixelbytes"
 version = "0.1.0"
 description = ""
 authors = ["fabienfrfr <fabien.furfaro@gmail.com>"]
