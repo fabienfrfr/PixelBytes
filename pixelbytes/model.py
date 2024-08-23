@@ -88,7 +88,7 @@ class bMamba(nn.Module):
 # simple lstm (like simplified PixelRNN)
 class SimpleRNNModel(nn.Module):
     def __init__(self, config: ModelConfig): #vocab_size, embedding_dim, hidden_dim):
-        super(SimpleSeqModel, self).__init__()
+        super(SimpleRNNModel, self).__init__()
         self.embedding_dim = config.dim
         self.hidden_dim = config.d_state
         self.nlayer = config.depth

@@ -9,12 +9,16 @@ PixelByte is an innovative Python project designed to simultaneously generate te
 Context and Proposed Architecture
 ----------------------------------
 
-### Theoretical Foundations
+Theoretical Foundations
+----------------
+
 - **Image Transformer**: [Pixel-by-pixel image generation](https://arxiv.org/abs/1802.05751)
 - **Bi-Mamba+**: [Bidirectional model for time series forecasting](https://arxiv.org/abs/2404.15772)
 - **MambaByte**: [Token-free selective state space model](https://arxiv.org/abs/2401.13660)
 
-### Key Concept
+Key Concept
+----------------
+
 The PixelByte model generates mixed sequences of text and images. It aims to:
 - Handle transitions between text and image with line breaks (ASCII 0A).
 - Maintain consistency in the dimensions of generated images.
@@ -34,15 +38,21 @@ The main objectives of this project are:
 Project Resources
 -----------------
 
-### Dataset
+Dataset
+----------------
+
 For this project, we will use the **PixelBytes-Pokemon** dataset, specifically designed for this multimodal generation task. This dataset, created by the author of this notebook, is available on Hugging Face: [PixelBytes-Pokemon](https://huggingface.co/datasets/ffurfaro/PixelBytes-Pokemon). It contains sequences of text and Pokémon images, encoded to enable training of our PixelByte model on multimodal data.
 
-### Implementation
+Implementation
+----------------
+
 The model implementation and training scripts are available in this GitHub repository **PixelBytes**: [PixelBytes](https://github.com/fabienfrfr/PixelBytes). This repository contains the source code necessary to reproduce the experiments, as well as detailed instructions on configuring and using the PixelByte model.
 
 
-### Citation
-If you use this project in your research, please cite it as follows:
+Citation
+========
+
+If you use this package in your research or project, please cite it as follows:
 
 .. code-block:: bibtex
 
