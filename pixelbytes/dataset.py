@@ -5,12 +5,12 @@
 """
 
 import getpass
-from huggingface_hub import login, HfApi, HfFolder
+from huggingface_hub import login
 
 from torch.utils.data import Dataset
 import torch
 
-import numpy as np, pylab as plt
+import numpy as np, cv2
 from numpy.lib.stride_tricks import as_strided
 from skimage import color
 from tqdm import tqdm

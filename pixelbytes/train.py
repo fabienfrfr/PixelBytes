@@ -47,7 +47,6 @@ class Trainer:
                 tqdm.write(f"\nEpoch {epoch+1}: Train Loss: {train_loss:.4f}, "
                            f"Test Loss: {test_metrics['loss']:.4f}, "
                            f"Test Acc: {test_metrics['accuracy']:.2f}%")
-
         torch.save(self.model.state_dict(), os.path.join(self.save_dir, 'last_model.pth'))
         pd.DataFrame(self.results).to_csv(os.path.join(self.save_dir, 'training_results.csv'), index=False)
         print("Training completed. Results and models saved.")
