@@ -4,11 +4,113 @@
 @author: fabien
 
 En cours : https://www.perplexity.ai/search/j-ai-un-code-def-reconstruct-i-6a88DXPFSDmyX.D6Elpb0g
+https://www.perplexity.ai/search/tu-peux-me-dire-combien-obtien-z6lt6R6IRrmwnILyCqwZxw
 """
 
 import numpy as np
+from PIL import Image
+import io
 
-##### Stream function
+class SequenceReconstructor:
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+        self.newline_token = tokenizer.token_to_id[b'\n']
+        self.tab_token = tokenizer.token_to_id[b'\t']
+        self.reset_state()
+
+    def reset_state(self):
+        self.text_buffer = io.StringIO()
+        self.current_image = []
+        self.is_image_mode = False
+
+    def stream_reconstruct(self, sequence_generator):
+        self.reset_state()
+        for matrix in sequence_generator:
+            yield from self.process_matrix(matrix)
+
+    def process_matrix(self, matrix):
+        matrix = matrix.tolist() if isinstance(matrix, torch.Tensor) else matrix
+        center_token = matrix[1][1]
+
+        if center_token == self.newline_token:
+            if self.is_image_mode and self.current_image:
+                yield ('image', self.process_image(self.current_image))
+                self.current_image = []
+            self.text_buffer.write('\n')
+            self.is_image_mode = not self.is_image_mode
+            yield ('text', self.text_buffer.getvalue())
+            self.text_buffer = io.StringIO()
+        elif center_token == self.tab_token:
+            if self.is_image_mode:
+                if self.current_image:
+                    yield ('image', self.process_image(self.current_image))
+                    self.current_image = []
+            else:
+                self.text_buffer.write('\t')
+        elif not self.is_image_mode:
+            self.text_buffer.write(self.tokenizer.ids_to_tokens[center_token].decode())
+        else:
+            self.current_image.extend([token for row in matrix for token in row if token != 0])
+            if len(self.current_image) == 9:
+                yield ('image', self.process_image(self.current_image))
+                self.current_image = []
+
+        if self.text_buffer.tell() > 0:
+            yield ('text', self.text_buffer.getvalue())
+            self.text_buffer = io.StringIO()
+
+    def process_image(self, pixels):
+        rgb_values = [self.token_to_rgb(token) for token in pixels]
+        return Image.fromarray(np.array(rgb_values, dtype=np.uint8).reshape(3, 3, 3))
+
+    def token_to_rgb(self, token):
+        # Implémentez cette méthode selon votre tokenization spécifique
+        return min(max(token, 0), 255)
+
+def display_stream_results(stream):
+    text_accumulator = ""
+    image_counter = 0
+    for data_type, data in stream:
+        if data_type == 'text':
+            new_text = data[len(text_accumulator):]
+            print(new_text, end='', flush=True)
+            text_accumulator = data
+        elif data_type == 'image':
+            image_filename = f"stream_image_{image_counter}.png"
+            data.save(image_filename)
+            print(f"\nImage sauvegardée : {image_filename}")
+            image_counter += 1
+
+"""
+
+# Exemple d'utilisation
+def sequence_generator():
+    # Simulons un générateur de séquence
+    sample_sequence = [
+        [[0,0,0],[0,84,0],[0,0,0]],  # 'T'
+        [[0,0,0],[0,10,0],[0,0,0]],  # '\n'
+        [[0,0,0],[0,80,0],[0,0,0]],  # 'P'
+        [[0,80,0],[80,80,0],[0,0,0]],
+        [[80,80,80],[80,80,0],[0,0,0]],
+        [[0,0,0],[0,10,0],[0,0,0]],  # '\n'
+        [[0,0,0],[0,84,0],[0,0,0]],  # 'T'
+    ]
+    for matrix in sample_sequence:
+        yield matrix
+
+tokenizer = YourTokenizer()  # Votre implémentation du tokenizer
+reconstructor = SequenceReconstructor(tokenizer)
+
+print("Résultats en streaming:")
+display_stream_results(reconstructor.stream_reconstruct(sequence_generator()))
+
+"""
+
+
+##### Stream function (first version)
+"""
+
+import numpy as np
 
 class DynamicImageReconstructor:
     def __init__(self, min_row_length=3, max_gap=50, max_image_gap=100):
@@ -172,3 +274,4 @@ def reconstruct_imgs(tokens_arr_obj, min_row_length=3, max_gap=50):
         img_flat[:len(valid_indices)] = [tokens_arr_obj[i] for i in valid_indices]
         images.append({'image': img, 'start_index': split[0], 'end_index': split[-1]})
     return images
+"""
