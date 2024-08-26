@@ -4,11 +4,11 @@
 @author: fabienfrfr
 """
 
-import torch, os
-from torch import nn
-#import torch.nn.functional as F
+import torch, re
+import torch.nn as nn
+from huggingface_hub import HfApi, create_repo, whoami
+from transformers import PreTrainedModel, PretrainedConfig
 from dataclasses import dataclass
-from transformers import AutoConfig, AutoModel
 
 try :
     from mamba_ssm.modules.mamba_simple import Mamba
@@ -20,7 +20,7 @@ class PxByEmbed(nn.Module):
     def __init__(self, vocab_size, dim, is_pemb=True, k=3):
         super().__init__()
         self.d_model, self.k = dim, k
-        self.e_model = max(8, dim // (k**2))
+        self.e_model = max(9, dim // (k**2))
         self.is_p_embed = is_pemb
         # Spatially adaptive embedding combination
         self.alpha = nn.Parameter(torch.rand(1, 1, k, k))
@@ -51,21 +51,32 @@ class PxByEmbed(nn.Module):
 
 ### Main model
 @dataclass
-class ModelConfig:
+class ModelConfig(PretrainedConfig):
     dim : int # The input dimension of the input tensor. (embedding dim output)
+    model_type: str = "sequence-generator"
     pembed : bool = True # convolutionnal embedding
+    pxbx_embed : bool = True # PixelBytes or only center sequence
     bidirectional : bool = True # For RNN or SSM model
-    d_state: int = 16 #16 # The dimension of the state space model.
+    d_state: int = 16 # The dimension of the state space model
     d_conv : int = 4 # The convolutionnal windows
     expand: int = 2 # E in paper/comments
     depth : int = 3 # The number of residual layers
     vocab_size : int = 113 # ASCII bytes + NES Pixel
-
-class bMamba(nn.Module):
+    
+    def __init__(self, dim: int = None, **kwargs):
+        super().__init__(**kwargs)
+        if dim is not None:
+            self.dim = dim
+        
+class bMamba(PreTrainedModel):
+    config_class = ModelConfig
+    base_model_prefix = "simple_ssm"
+    
     def __init__(self, config: ModelConfig):
-        super().__init__()
-        self.bidirectional = config.bidirectional
-        self.pxby_embedding = PxByEmbed(config.vocab_size, config.dim, config.pembed)
+        super(bMamba, self).__init__(config)
+        self.name = "ssm"
+        self.bidirectional, self.pxby = config.bidirectional, config.pxbx_embed
+        self.embedding = PxByEmbed(config.vocab_size, config.dim, config.pembed) if self.pxby else nn.Embedding(config.vocab_size, config.dim)
         # First Mamba layer (bidirectional or not based on config)
         self._mamba = Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand)
         # Remaining Mamba layers
@@ -77,7 +88,7 @@ class bMamba(nn.Module):
         self.lm_head = nn.Linear(config.dim, config.vocab_size, bias=False)
 
     def forward(self, x):
-        x = self.pxby_embedding(x)
+        x = self.embedding(x) if self.pxby else self.embedding(x[:,:,1,1])
         # Bidirectional Mamba for the first layer
         if self.bidirectional: x = self.norm(self._mamba(x) + self._mamba(torch.flip(x, dims=[1])).flip([1]))
         else: x = self._mamba(x)
@@ -88,10 +99,15 @@ class bMamba(nn.Module):
 
 ### Comparizon model
 # simple lstm (like simplified PixelRNN)
-class SimpleRNNModel(nn.Module):
+class SimpleRNNModel(PreTrainedModel):
+    config_class = ModelConfig
+    base_model_prefix = "simple_rnn"
+    
     def __init__(self, config: ModelConfig):
-        super(SimpleRNNModel, self).__init__()
-        self.embedding = PxByEmbed(config.vocab_size, config.dim, config.pembed)
+        super(SimpleRNNModel, self).__init__(config)
+        self.name = "rnn"
+        self.pxby = config.pxbx_embed
+        self.embedding = PxByEmbed(config.vocab_size, config.dim, config.pembed) if self.pxby else nn.Embedding(config.vocab_size, config.dim)
         # First LSTM layer (bidirectional or not based on config)
         self._lstm = nn.LSTM(input_size=config.dim,
             hidden_size=config.d_state // (2 if config.bidirectional else 1),
@@ -104,21 +120,26 @@ class SimpleRNNModel(nn.Module):
         self.fc = nn.Linear(config.d_state, config.vocab_size)
 
     def forward(self, x):
-        x = self.embedding(x)
+        x = self.embedding(x) if self.pxby else self.embedding(x[:,:,1,1])
         x = self._lstm(x)[0]
         x = x if self.lstm is None else self.lstm(x)[0]
         return self.fc(x[:, -1, :])
 
 # simple attention (like VERY simplified GPeT)
-class SimpleTransformerModel(nn.Module):
+class SimpleTransformerModel(PreTrainedModel):
+    config_class = ModelConfig
+    base_model_prefix = "simple_transformer"
+    
     def __init__(self, config: ModelConfig):
-        super(SimpleTransformerModel, self).__init__()
+        super(SimpleTransformerModel, self).__init__(config)
+        self.name = "attention"
+        self.pxby = config.pxbx_embed
         self.num_heads = 4  # to adjust
         self.num_layers = config.depth
         self.vocab = config.vocab_size
         self.embedding_dim = (config.dim // self.num_heads) * self.num_heads
         # Embedding
-        self.embedding = PxByEmbed(config.vocab_size, self.embedding_dim, config.pembed)
+        self.embedding = PxByEmbed(config.vocab_size, self.embedding_dim, config.pembed) if self.pxby else nn.Embedding(config.vocab_size, self.embedding_dim)
         # Transformer 
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.embedding_dim, 
                                                    nhead=self.num_heads,
@@ -129,24 +150,33 @@ class SimpleTransformerModel(nn.Module):
 
     def forward(self, x):
         # x shape: [batch_size, seq_length, 3, 3]
-        x = self.embedding(x)  # [batch_size, seq_length, embedding_dim]
+        x = self.embedding(x) if self.pxby else self.embedding(x[:,:,1,1])
         # Apply transformer encoder
         x = self.transformer_encoder(x)
         # Use the last token's representation for classification
         return self.fc(x[:, -1, :])
 
-### convert model to HF (to push to hub)
-def convert_pytorch_to_HF(source_dir, target_dir, model_type="bert"):
-    os.makedirs(target_dir, exist_ok=True)
-    for filename in os.listdir(source_dir):
-        if filename.endswith('.pth'):
-            state_dict = torch.load(os.path.join(source_dir, filename), map_location='cpu')
-            config = AutoConfig.from_pretrained(model_type)
-            model = AutoModel.from_config(config)
-            model.load_state_dict(state_dict, strict=False)
-            target_model_dir = os.path.join(target_dir, filename[:-4])
-            model.save_pretrained(target_model_dir)
-            config.save_pretrained(target_model_dir)
-            print(f"Model saved : {target_model_dir}")
 
+### save model function
+def push_model_to_hub(repo_name, model_dir, token, subfolder=None):
+    api = HfApi(token=token)
+    subfolder = re.sub(r'[^a-zA-Z0-9]+', '_', subfolder).strip('_').lower()
 
+    try:
+        create_repo(repo_name, token=token, repo_type="model", exist_ok=True)
+        username = whoami(token=token)['name']
+        repo_id = f"{username}/{repo_name}"
+        print(f"Repository '{repo_id}' created or already exists.")
+    except Exception as e:
+        print(f"Error creating repository: {e}")
+        return
+    
+    api.upload_folder(
+        folder_path=model_dir,
+        repo_id=repo_id,
+        repo_type="model",
+        path_in_repo=subfolder,
+        ignore_patterns=[".*"],  # Ignorer les fichiers cachés
+        create_pr=False  # Créer directement dans la branche principale
+    )
+    print(f"Model pushed successfully to {repo_name}, subfolder: {subfolder}")

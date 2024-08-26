@@ -7,8 +7,6 @@ TESTS FILE
 
 from pixelbytes import *
 from datasets import load_dataset
-import logging
-logging.basicConfig(level=logging.DEBUG)
 
 ### basic test
 if __name__ == '__main__' :
@@ -19,30 +17,28 @@ if __name__ == '__main__' :
     train_dataset = PxByDataset(ds["train"]["pixelbyte"], seq_length=256, stride=128)
     test_dataset = PxByDataset(ds["test"]["pixelbyte"], seq_length=256, stride=128)
     """
-    # model config
+    # tokenizer config
     tokenizer = PixelBytesTokenizer()
+    tokenizer.save_vocabulary("./models")   # Sauvegarder le vocabulaire
+    #push_tokenizer_to_hub(tokenizer)
+
+    #tokenizer = PixelBytesTokenizer.from_pretrained("ffurfaro/PixelBytes-Pokemon")
+    # train model & config
     vocab_size = len(tokenizer.vocab); print(vocab_size)
     embedding_dim = 81
     hidden_dim = 64
     n_layer = 1
-    config = ModelConfig(dim=embedding_dim, d_state=hidden_dim, depth=n_layer, vocab_size=vocab_size)
+    model_config = ModelConfig(dim=embedding_dim, d_state=hidden_dim, depth=n_layer, vocab_size=vocab_size, pxbx_embed=False)
     # train simple model (one epoch)
-    model = SimpleRNNModel(config) #SimpleTransformerModel(config)
+    model = SimpleRNNModel(model_config) #SimpleTransformerModel(config)
     """
-    trainer = Trainer(
-        model=model,
-        train_dataset=train_dataset,
-        test_dataset=test_dataset,
-        batch_size=32,
-        learning_rate=0.001,
-        num_epochs=1,
-        save_dir='models',
-        model_name="SimpleSeqModel",
-        dataset_name="PixelBytes-Pokemon",
-        eval_every=1 # Évaluer tous les 5 epochs
-    )
+    token = input("Input Hugging Face Token: ")
+    train_config = TrainConfig(model=model, model_config=model_config, dataset_name="PixelBytes-Pokemon", hf_token=token,
+                               train_dataset=train_dataset,test_dataset=test_dataset, num_epochs=2, repo_name="PixelBytes-Pokemon")
+    trainer = Trainer(train_config)
     trainer.train_and_evaluate()
     """
+    model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_center_81_dim_64_state_1_layer_best")
     # generate and display
     generator = SequenceGenerator(model, tokenizer)
     reconstructor = SequenceReconstructor(tokenizer)

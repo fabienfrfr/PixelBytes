@@ -2,13 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 @author: fabien
+
+in dev (pretrained part)
 """
 
+from huggingface_hub import login, hf_hub_download
+
 from transformers import PreTrainedTokenizer
-import numpy as np
+import numpy as np, os
+from typing import List, Dict, Union, Tuple
 
 ##### Tokenizer
-
 class PixelBytesTokenizer(PreTrainedTokenizer):
     def __init__(self, vocab=None):
         if vocab == None :
@@ -39,23 +43,70 @@ class PixelBytesTokenizer(PreTrainedTokenizer):
         super().__init__()
         self.ids_to_tokens = {v: k for k, v in vocab.items()}
 
-    def _tokenize(self, text):
-        # Implémentez votre logique de tokenization ici
-        # Par exemple, diviser le texte en caractères et les mapper aux IDs
-        tokens = list(text)
-        return tokens
+    @property
+    def vocab_size(self) -> int:
+        return len(self.vocab)
 
-    def _convert_token_to_id(self, token):
-        return self.vocab.get(token, self.vocab.get(b'[UNK]'))
+    def get_vocab(self) -> Dict[str, int]:
+        return {str(k): v for k, v in self.vocab.items()}
 
-    def _convert_id_to_token(self, index):
+    def _tokenize(self, text: str) -> List[str]:
+        return list(text)
+
+    def _convert_token_to_id(self, token: Union[bytes, tuple]) -> int:
+        return self.vocab.get(token, self.vocab.get(b'[UNK]', 0))
+
+    def _convert_id_to_token(self, index: int) -> Union[bytes, tuple]:
         return self.ids_to_tokens.get(index, b'[UNK]')
 
-    def convert_tokens_to_ids(self, tokens):
+    def convert_tokens_to_ids(self, tokens: List[Union[bytes, tuple]]) -> List[int]:
         return [self._convert_token_to_id(token) for token in tokens]
 
-    def convert_ids_to_tokens(self, ids):
-        return np.array([self._convert_id_to_token(i) for i in ids], dtype=object)
-    
-    def get_vocab(self):
-        return self.vocab
+    def convert_ids_to_tokens(self, ids: List[int]) -> List[Union[bytes, tuple]]:
+        return [self._convert_id_to_token(i) for i in ids]
+
+    def save_vocabulary(self, save_directory: str, filename_prefix: str = None) -> Tuple[str]:
+        vocab_file = os.path.join(save_directory, (filename_prefix + '-' if filename_prefix else '') + 'vocab.txt')
+        with open(vocab_file, 'w', encoding='utf-8') as f:
+            for token, index in self.vocab.items():
+                if isinstance(token, bytes):
+                    token = token.decode('utf-8', errors='replace')
+                elif isinstance(token, tuple):
+                    token = ','.join(map(str, token))
+                f.write(f"{token}\n")
+        return (vocab_file,)
+
+    @classmethod
+    def from_pretrained(cls, pretrained_model_name_or_path, *init_inputs, **kwargs):
+        try:
+            vocab_file = hf_hub_download(repo_id=pretrained_model_name_or_path,
+                                         filename="vocab.txt",
+                                         subfolder=kwargs.get("subfolder", None))
+        except Exception as e:
+            return cls()
+        vocab = cls._load_vocab(vocab_file)
+        print(f"Taille du vocabulaire chargé: {len(vocab)}")
+        return cls(vocab=vocab, **kwargs)
+
+    @staticmethod
+    def _load_vocab(vocab_file):
+        vocab = {}
+        with open(vocab_file, 'r', encoding='utf-8') as f:
+            for i, line in enumerate(f):
+                line = line.strip()
+                if line:
+                    if ',' in line: # error ici si c'est une virgule
+                        token = tuple(map(int, line.split(',')))
+                    elif len(line) == 1 or (len(line) == 2 and line.startswith('\\')):
+                        token = line.encode('utf-8')
+                    else:
+                        token = line
+                    vocab[token] = i
+        return vocab
+
+def push_tokenizer_to_hub(tokenizer, repo_name="ffurfaro/PixelBytes-Pokemon"):
+    token = input("Input Hugging Face Token: ")
+    # Connect and push to Hub
+    login(token)
+    tokenizer.push_to_hub(repo_name, use_auth_token=token)
+
