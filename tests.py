@@ -13,9 +13,10 @@ if __name__ == '__main__' :
     # train part
     
     hf_dataset = load_dataset("ffurfaro/PixelBytes-Pokemon")
-    """
+    
     ds = hf_dataset["train"].train_test_split(test_size=0.1)
     train_dataset = PxByDataset(ds["train"]["pixelbyte"], seq_length=256, stride=128)
+    """
     test_dataset = PxByDataset(ds["test"]["pixelbyte"], seq_length=256, stride=128)
     """
     # tokenizer config

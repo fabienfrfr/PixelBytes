@@ -19,7 +19,7 @@ from tqdm import tqdm
 ##### dataset
 class PxByDataset(Dataset):
     def __init__(self, pxby_columns, seq_length=256, stride=64):
-        self.data = pxby_columns
+        self.data = [torch.tensor(sequence, dtype=torch.long) for sequence in pxby_columns]
         self.seq_length = seq_length
         self.stride = stride
         self.sub_sequences = self._create_sub_sequences()
@@ -27,19 +27,17 @@ class PxByDataset(Dataset):
     def _create_sub_sequences(self):
         sub_sequences = []
         for sequence in self.data:
-            sequence = torch.tensor(sequence, dtype=torch.long)
             L, H, W = sequence.shape
             # Define index tensor for all subseq
-            starts = torch.arange(0, max(L - self.seq_length, 1), self.stride)
-            indices = starts[:, None] + torch.arange(self.seq_length + 1)
-            indices = indices.clamp(max=L-1)
+            starts = torch.arange(0, L, self.stride)
+            indices = (starts[:, None] + torch.arange(self.seq_length + 1)) % L
             # Extract and construct all input-target
             sub_seqs = sequence[indices]
             inputs = sub_seqs[:, :-1]
             targets = sub_seqs[:, -1, H//2, W//2]
             sub_sequences.extend(zip(inputs, targets))
         return sub_sequences
-
+    
     def __len__(self):
         return len(self.sub_sequences)
 
