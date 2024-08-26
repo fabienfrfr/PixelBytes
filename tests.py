@@ -11,17 +11,18 @@ from datasets import load_dataset
 ### basic test
 if __name__ == '__main__' :
     # train part
-    """
+    
     hf_dataset = load_dataset("ffurfaro/PixelBytes-Pokemon")
+    """
     ds = hf_dataset["train"].train_test_split(test_size=0.1)
     train_dataset = PxByDataset(ds["train"]["pixelbyte"], seq_length=256, stride=128)
     test_dataset = PxByDataset(ds["test"]["pixelbyte"], seq_length=256, stride=128)
     """
     # tokenizer config
     tokenizer = PixelBytesTokenizer()
-    tokenizer.save_vocabulary("./models")   # Sauvegarder le vocabulaire
+    #tokenizer.save_vocabulary("./models")   # Sauvegarder le vocabulaire
     #push_tokenizer_to_hub(tokenizer)
-
+    """
     #tokenizer = PixelBytesTokenizer.from_pretrained("ffurfaro/PixelBytes-Pokemon")
     # train model & config
     vocab_size = len(tokenizer.vocab); print(vocab_size)
@@ -32,19 +33,22 @@ if __name__ == '__main__' :
     # train simple model (one epoch)
     model = SimpleRNNModel(model_config) #SimpleTransformerModel(config)
     """
+    """
     token = input("Input Hugging Face Token: ")
     train_config = TrainConfig(model=model, model_config=model_config, dataset_name="PixelBytes-Pokemon", hf_token=token,
                                train_dataset=train_dataset,test_dataset=test_dataset, num_epochs=2, repo_name="PixelBytes-Pokemon")
     trainer = Trainer(train_config)
     trainer.train_and_evaluate()
     """
-    model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_center_81_dim_64_state_1_layer_best")
+    model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
     # generate and display
     generator = SequenceGenerator(model, tokenizer)
     reconstructor = SequenceReconstructor(tokenizer)
     # generate complete sequence
+    first_sequence = np.array(hf_dataset["train"]['pixelbyte'][0])[:,1,1]
     start_sequence = [tokenizer.vocab[t] for t in [b't',b't',b'\n',b't',b'\n',(0,0,0),(252,252,252),(252,252,252),b'\t',(252,252,252),(252,252,252),(0,0,0),b'\n',b't',b't']]
-    complete_sequence = generator.generate_complete(start_sequence, max_length=25, temperature=0.7)
+    #start_sequence = first_sequence[:150].tolist() # image not work ?
+    complete_sequence = generator.generate_complete(start_sequence, max_length=300, temperature=0.7)
     print(complete_sequence)
     # Génération en streaming
     print("\nGénération en streaming (incluant la séquence initiale):")
