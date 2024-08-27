@@ -5,3 +5,5 @@ from .pokemon import *
 from .display import *
 from .tokenizer import *
 from .train import *
+from .eval import *
+from .results import *
