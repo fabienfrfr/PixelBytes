@@ -34,7 +34,7 @@ class TrainConfig:
     def __post_init__(self):
         self.info = "_".join([self.model.name, 
                      "bi" if self.model_config.bidirectional else "uni", 
-                     "pxby" if self.model_config.pxbx_embed else "center",
+                     "pxby" if self.model_config.pxby_embed else "center",
                      str(self.model_config.dim) + "-dim",
                      str(self.model_config.d_state) + "-state",
                      str(self.model_config.depth) + "-layer"])

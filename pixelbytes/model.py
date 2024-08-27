@@ -55,7 +55,7 @@ class ModelConfig(PretrainedConfig):
     dim : int # The input dimension of the input tensor. (embedding dim output)
     model_type: str = "sequence-generator"
     pembed : bool = True # convolutionnal embedding
-    pxbx_embed : bool = True # PixelBytes or only center sequence
+    pxby_embed : bool = True # PixelBytes or only center sequence
     bidirectional : bool = True # For RNN or SSM model
     d_state: int = 16 # The dimension of the state space model
     d_conv : int = 4 # The convolutionnal windows
@@ -75,7 +75,7 @@ class bMamba(PreTrainedModel):
     def __init__(self, config: ModelConfig):
         super(bMamba, self).__init__(config)
         self.name = "ssm"
-        self.bidirectional, self.pxby = config.bidirectional, config.pxbx_embed
+        self.bidirectional, self.pxby = config.bidirectional, config.pxby_embed
         self.embedding = PxByEmbed(config.vocab_size, config.dim, config.pembed) if self.pxby else nn.Embedding(config.vocab_size, config.dim)
         # First Mamba layer (bidirectional or not based on config)
         self._mamba = Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand)
@@ -106,7 +106,7 @@ class SimpleRNNModel(PreTrainedModel):
     def __init__(self, config: ModelConfig):
         super(SimpleRNNModel, self).__init__(config)
         self.name = "rnn"
-        self.pxby = config.pxbx_embed
+        self.pxby = config.pxby_embed
         self.embedding = PxByEmbed(config.vocab_size, config.dim, config.pembed) if self.pxby else nn.Embedding(config.vocab_size, config.dim)
         # First LSTM layer (bidirectional or not based on config)
         self._lstm = nn.LSTM(input_size=config.dim,
@@ -133,7 +133,7 @@ class SimpleTransformerModel(PreTrainedModel):
     def __init__(self, config: ModelConfig):
         super(SimpleTransformerModel, self).__init__(config)
         self.name = "attention"
-        self.pxby = config.pxbx_embed
+        self.pxby = config.pxby_embed
         self.num_heads = 4  # to adjust
         self.num_layers = config.depth
         self.vocab = config.vocab_size

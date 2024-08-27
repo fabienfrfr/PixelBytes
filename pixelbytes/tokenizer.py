@@ -64,7 +64,8 @@ class PixelBytesTokenizer(PreTrainedTokenizer):
 
     def convert_ids_to_tokens(self, ids: List[int]) -> List[Union[bytes, tuple]]:
         return [self._convert_id_to_token(i) for i in ids]
-
+    
+    # change here : convert byte in b"\t" in line (use ast.literal_eval(f"'{s}'"))
     def save_vocabulary(self, save_directory: str, filename_prefix: str = None) -> Tuple[str]:
         vocab_file = os.path.join(save_directory, (filename_prefix + '-' if filename_prefix else '') + 'vocab.txt')
         with open(vocab_file, 'w', encoding='utf-8') as f:
@@ -87,7 +88,8 @@ class PixelBytesTokenizer(PreTrainedTokenizer):
         vocab = cls._load_vocab(vocab_file)
         print(f"Taille du vocabulaire chargé: {len(vocab)}")
         return cls(vocab=vocab, **kwargs)
-
+    
+    # readapting with save vocab --> no save with binary
     @staticmethod
     def _load_vocab(vocab_file):
         vocab = {}
