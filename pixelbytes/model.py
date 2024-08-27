@@ -40,7 +40,7 @@ class PxByEmbed(nn.Module):
         x = self.linear_embedding(x.view(B*L, M, N))  # (B*L, M, N, e_model)
         x = x.permute(0, 3, 1, 2)  # (B*L, e_model, M, N)
         # Combine linear (and patch) embedding with alpha
-        if not(self.is_p_embed): x = x = torch.sigmoid(self.alpha) * x  # (B*L, e_model, M, N)
+        if not(self.is_p_embed): x = torch.sigmoid(self.alpha) * x  # (B*L, e_model, M, N)
         else: x = torch.sigmoid(self.alpha) * x + (1 - torch.sigmoid(self.alpha)) * self.patch_embedding(x) 
         # Flatten and project
         x = x.reshape(B*L, -1)  # (B*L, e_model*M*N)
@@ -114,7 +114,7 @@ class SimpleRNNModel(PreTrainedModel):
             num_layers=1,batch_first=True,bidirectional=config.bidirectional)
         # Remaining LSTM layers (if any)
         input_size = config.d_state if config.bidirectional else config.d_state // 2
-        self.lstm = nn.LSTM( input_size=input_size,hidden_size=config.d_state, 
+        self.lstm = nn.LSTM(input_size=config.d_state,hidden_size=config.d_state, 
             num_layers=config.depth - 1, batch_first=True) if config.depth > 1 else None
         # Fully connected layer
         self.fc = nn.Linear(config.d_state, config.vocab_size)
@@ -124,6 +124,7 @@ class SimpleRNNModel(PreTrainedModel):
         x = self._lstm(x)[0]
         x = x if self.lstm is None else self.lstm(x)[0]
         return self.fc(x[:, -1, :])
+
 
 # simple attention (like VERY simplified GPeT)
 class SimpleTransformerModel(PreTrainedModel):

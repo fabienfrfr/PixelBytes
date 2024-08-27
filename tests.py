@@ -16,26 +16,22 @@ if __name__ == '__main__' :
     
     ds = hf_dataset["train"].train_test_split(test_size=0.1)
     train_dataset = PxByDataset(ds["train"]["pixelbyte"], seq_length=256, stride=128)
-    """
     test_dataset = PxByDataset(ds["test"]["pixelbyte"], seq_length=256, stride=128)
-    """
+
     # tokenizer config
     tokenizer = PixelBytesTokenizer()
     #tokenizer.save_vocabulary("./models")   # Sauvegarder le vocabulaire
     #push_tokenizer_to_hub(tokenizer)
-    """
+    
     #tokenizer = PixelBytesTokenizer.from_pretrained("ffurfaro/PixelBytes-Pokemon")
     # train model & config
-    vocab_size = len(tokenizer.vocab); print(vocab_size)
-    embedding_dim = 81
-    hidden_dim = 64
-    n_layer = 1
-    model_config = ModelConfig(dim=embedding_dim, d_state=hidden_dim, depth=n_layer, vocab_size=vocab_size, pxbx_embed=False)
+    vocab_size = tokenizer.__len__()
+    model_config = ModelConfig(dim=81, d_state=64, depth=2, vocab_size=vocab_size, bidirectional=False)
     # train simple model (one epoch)
     model = SimpleRNNModel(model_config) #SimpleTransformerModel(config)
-    """
-    """
-    token = input("Input Hugging Face Token: ")
+    
+
+    token = None #input("Input Hugging Face Token: ")
     train_config = TrainConfig(model=model, model_config=model_config, dataset_name="PixelBytes-Pokemon", hf_token=token,
                                train_dataset=train_dataset,test_dataset=test_dataset, num_epochs=2, repo_name="PixelBytes-Pokemon")
     trainer = Trainer(train_config)
@@ -62,9 +58,7 @@ if __name__ == '__main__' :
         reconstructor.process(token_id)
     result = reconstructor.get_result()
     display_result(result)
-
-
-
+    """
     """
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     
