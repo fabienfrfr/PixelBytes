@@ -37,7 +37,8 @@ if __name__ == '__main__' :
     trainer = Trainer(train_config)
     trainer.train_and_evaluate()
     """
-    model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
+    #model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
+    model = bMamba.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
     # generate and display
     generator = SequenceGenerator(model, tokenizer)
     reconstructor = SequenceReconstructor(tokenizer)
