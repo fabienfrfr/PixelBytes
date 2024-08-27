@@ -1,0 +1,18 @@
+\begin{thebibliography}{1}
+
+\bibitem{bimamba}
+A.~Author and B.~Author.
+\newblock Bi-mamba+: A bidirectional model for time series forecasting.
+\newblock {\em arXiv preprint arXiv:2404.15772}, 2024.
+
+\bibitem{mambabyte}
+C.~Author and D.~Author.
+\newblock Mambabyte: Selective state space model without tokens.
+\newblock {\em arXiv preprint arXiv:2401.13660}, 2024.
+
+\bibitem{parmar2018image}
+N.~Parmar, A.~Vaswani, J.~Uszkoreit, and et~al.
+\newblock Image transformer.
+\newblock {\em arXiv preprint arXiv:1802.05751}, 2018.
+
+\end{thebibliography}

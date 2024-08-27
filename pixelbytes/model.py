@@ -95,7 +95,7 @@ class bMamba(PreTrainedModel):
         # Remaining Mamba layers
         if self.layers:
             for layer in self.layers: x = layer(x)
-        return self.lm_head(x)
+        return self.lm_head(x[:, -1, :])
 
 ### Comparizon model
 # simple lstm (like simplified PixelRNN)

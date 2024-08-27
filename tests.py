@@ -30,7 +30,7 @@ if __name__ == '__main__' :
     # train simple model (one epoch)
     model = SimpleRNNModel(model_config) #SimpleTransformerModel(config)
     
-
+    """
     token = None #input("Input Hugging Face Token: ")
     train_config = TrainConfig(model=model, model_config=model_config, dataset_name="PixelBytes-Pokemon", hf_token=token,
                                train_dataset=train_dataset,test_dataset=test_dataset, num_epochs=2, repo_name="PixelBytes-Pokemon")
@@ -58,7 +58,7 @@ if __name__ == '__main__' :
         reconstructor.process(token_id)
     result = reconstructor.get_result()
     display_result(result)
-    """
+
     """
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     

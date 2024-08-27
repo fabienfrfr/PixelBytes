@@ -30,6 +30,7 @@ class TrainConfig:
     save_dir : str = "models"
     dataset_name : str = "dataset"
     eval_every : int = 5
+    compile_model : bool = False
 
     def __post_init__(self):
         self.info = "_".join([self.model.name, 
@@ -44,6 +45,7 @@ class Trainer:
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.config.model.to(self.device)
+        self.model = torch.compile(self.model) if config.compile_model else self.model
         self.save_dir = os.path.join(config.save_dir, f"{config.info}_{config.dataset_name}")
         self.hf_dir = os.path.join(config.save_dir, f"{config.info}")
         os.makedirs(self.save_dir, exist_ok=True)
