@@ -35,6 +35,7 @@ class TrainConfig:
         self.info = "_".join([self.model.name, 
                      "bi" if self.model_config.bidirectional else "uni", 
                      "pxby" if self.model_config.pxby_embed else "center",
+                     "conv" if self.model_config.pembed else "noconv",
                      str(self.model_config.dim) + "-dim",
                      str(self.model_config.d_state) + "-state",
                      str(self.model_config.depth) + "-layer"])
