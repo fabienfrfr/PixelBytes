@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-# Configuration du style (inchangée)
-plt.style.use('seaborn-whitegrid')
+# Configuration du style
+plt.style.use('default')  # Utilisation du style par défaut de Matplotlib
+sns.set_theme()  # Application des paramètres de base de Seaborn
 plt.rcParams.update({
     'font.family': 'serif',
     'font.serif': ['Times New Roman'] + plt.rcParams['font.serif'],
@@ -20,8 +21,16 @@ plt.rcParams.update({
     'xtick.labelsize': 10,
     'ytick.labelsize': 10,
     'legend.fontsize': 10,
-    'figure.titlesize': 16
+    'figure.titlesize': 16,
+    'axes.grid': True,
+    'grid.alpha': 0.3,
+    'axes.axisbelow': True,
+    'axes.facecolor': '#EAEAF2',
+    'axes.edgecolor': 'none',
+    'axes.linewidth': 0,
+    'figure.facecolor': 'white'
 })
+
 
 def load_csv_files(directory_or_file):
     data_dict = {}

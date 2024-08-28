@@ -51,16 +51,18 @@ class PxByEmbed(nn.Module):
 
 ### Main model
 @dataclass
+model_config = ModelConfig(dim=81, d_state=64, depth=2, vocab_size=vocab_size)
+
 class ModelConfig(PretrainedConfig):
-    dim : int # The input dimension of the input tensor. (embedding dim output)
+    dim : int #81 # The input dimension of the input tensor. (embedding dim output)
     model_type: str = "sequence-generator"
     pembed : bool = True # convolutionnal embedding
     pxby_embed : bool = True # PixelBytes or only center sequence
     bidirectional : bool = True # For RNN or SSM model
-    d_state: int = 16 # The dimension of the state space model
+    d_state: int = 64 # The dimension of the state space model (or hidden state for RNN)
     d_conv : int = 4 # The convolutionnal windows
     expand: int = 2 # E in paper/comments
-    depth : int = 3 # The number of residual layers
+    depth : int = 2 # The number of residual layers
     vocab_size : int = 113 # ASCII bytes + NES Pixel
     
     def __init__(self, dim: int = None, **kwargs):
