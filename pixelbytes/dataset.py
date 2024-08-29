@@ -173,8 +173,9 @@ def image_edging_enhancer(img) :
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
     dilated_edges = cv2.dilate(edges, kernel)
     # border dark coloring
-    img[dilated_edges != 0] = [0, 0, 0]
-    return img
+    img_ = img.copy()
+    img_[dilated_edges != 0] = [0, 0, 0]
+    return img_
 
 def image_paletization(img, palette) :
     palette_rgb = palette.copy()
