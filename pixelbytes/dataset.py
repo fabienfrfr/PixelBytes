@@ -165,6 +165,17 @@ def kmean_quantization(img, num_colors) :
     quantized = centers[labels.flatten()]
     return cv2.cvtColor(quantized.reshape(img.shape), cv2.COLOR_Lab2BGR)
 
+def image_edging_enhancer(img) :
+    gray_image = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    edges = cv2.Canny(gray_image, 100, 200)
+    # kernel & dilatation
+    kernel_size = int(min(img.shape[0], img.shape[1]) * 0.005)  # 0,5% of image size
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+    dilated_edges = cv2.dilate(edges, kernel)
+    # border dark coloring
+    img[dilated_edges != 0] = [0, 0, 0]
+    return img
+
 def image_paletization(img, palette) :
     palette_rgb = palette.copy()
     palette = color.rgb2lab(palette_rgb.reshape(1, -1, 3) / 255.0).reshape(-1, 3)
@@ -176,7 +187,7 @@ def image_paletization(img, palette) :
         return palette_rgb[np.argmin(distances)]
     return np.apply_along_axis(closest_color, 2 , img, palette)
     
-def image_pixelization(img, palette, max_size=25):
+def image_pixelization(img, palette, max_size=25, edging=False):
     # Parameter
     h, w = img.shape[:2]
     num_colors = len(palette)
@@ -186,6 +197,8 @@ def image_pixelization(img, palette, max_size=25):
     # Remove alpha (if)
     if img.shape[2] == 4:
         img = alpha_to_blank(img)
+    # edging (experimental for big img)
+    img = image_edging_enhancer(img) if edging else img
     # First resizing (a=2)
     img = resize_image(img, h, w, m=max_size, a=2)
     ## Quantize image

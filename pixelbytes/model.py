@@ -13,7 +13,8 @@ from dataclasses import dataclass
 try :
     from mamba_ssm.modules.mamba_simple import Mamba
 except :
-    print('No mamba_ssm modules installed...')
+    print('No mamba_ssm CUDA modules installed...')
+    from mambapy.mamba import Mamba
 
 ### Multimodal embedding        
 class PxByEmbed(nn.Module):
@@ -51,8 +52,6 @@ class PxByEmbed(nn.Module):
 
 ### Main model
 @dataclass
-model_config = ModelConfig(dim=81, d_state=64, depth=2, vocab_size=vocab_size)
-
 class ModelConfig(PretrainedConfig):
     dim : int #81 # The input dimension of the input tensor. (embedding dim output)
     model_type: str = "sequence-generator"
