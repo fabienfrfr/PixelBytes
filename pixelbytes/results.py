@@ -49,6 +49,14 @@ def load_csv_files(directory_or_file):
             data_dict['unnamed_model'] = df
     return data_dict
 
+def combine_eval_results(self):
+    all_results = []
+    for file in os.listdir(self.config.output_dir):
+        if file.endswith(".csv"):
+            df = pd.read_csv(os.path.join(self.config.output_dir, file))
+            all_results.append(df)
+    return pd.concat(all_results, ignore_index=True)
+
 def save_plot(fig, base_name):
     for ext in ['svg', 'png']:
         fig.savefig(f"{base_name}.{ext}", format=ext, dpi=300, bbox_inches='tight')
