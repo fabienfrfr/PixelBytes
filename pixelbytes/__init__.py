@@ -2,7 +2,7 @@ from .dataset import *
 from .generator import *
 from .model import *
 from .pokemon import *
-from .display import *
+from .displays import *
 from .tokenizer import *
 from .train import *
 from .eval import *
