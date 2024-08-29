@@ -10,6 +10,8 @@ import pandas as pd
 from dataclasses import dataclass
 from scipy.spatial.distance import hamming, cosine
 from nltk.translate.bleu_score import sentence_bleu
+from Levenshtein import distance as levenshtein_distance
+from dtaidistance import dtw
 from tqdm import tqdm
 import os
 
@@ -21,14 +23,14 @@ class EvaluateMetricConfig:
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
 class EvaluateMetric:
-    def __init__(self, config: EvaluateMetricConfig, data: np.ndarray, tokenizer):
+    def __init__(self, config: EvaluateMetricConfig, data_pxby, tokenizer):
         self.config = config
-        self.data = data
+        self.data = [np.array(d) for d in data_pxby] 
         self.model = None
         self.device = torch.device(config.device)
         self.sequence_generator = SequenceGenerator(tokenizer)
-        self.df = None
         os.makedirs(self.config.output_dir, exist_ok=True)
+        self.df = None
 
     def reset(self, model: torch.nn.Module):
         self.model = model.to(self.device).eval()
@@ -63,13 +65,21 @@ class EvaluateMetric:
 
             for seq_idx, (input_seq, target_seq) in enumerate(zip(inputs, targets)):
                 generated_seq = self._generate_sequence(input_seq)
+                
+                target_flat = target_seq.flatten()
+                generated_flat = generated_seq.flatten()
+                target_str = ''.join(map(str, target_flat))
+                generated_str = ''.join(map(str, generated_flat))
+                
                 results.append({
                     "row": row_idx,
                     "n_seq": seq_idx,
                     "model": model_name,
-                    "hamming": hamming(generated_seq.flatten(), target_seq.flatten()),
-                    "cosine": cosine(generated_seq.flatten(), target_seq.flatten()),
-                    "bleu": sentence_bleu([list(map(str, target_seq.flatten()))], list(map(str, generated_seq.flatten())))
+                    "hamming": hamming(generated_flat, target_flat),
+                    "cosine": cosine(generated_flat, target_flat),
+                    "bleu": sentence_bleu([list(map(str, target_flat))], list(map(str, generated_flat))),
+                    "levenshtein": levenshtein_distance(target_str, generated_str),
+                    "dtw": dtw.distance(target_flat, generated_flat)
                 })
 
         self.df = pd.DataFrame(results)
