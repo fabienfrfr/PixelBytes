@@ -9,11 +9,29 @@ from pixelbytes import *
 from datasets import load_dataset
 
 
-
 ### basic test
 if __name__ == '__main__' :
-    # train part
+    # common part
     hf_dataset = load_dataset("ffurfaro/PixelBytes-Pokemon")
+
+
+    # evaluation part
+    #config = EvaluateMetricConfig(output_dir="models/eval_results")
+    data_columns = hf_dataset["train"]['pixelbyte']
+    tokenizer = PixelBytesTokenizer()
+    evaluator = EvaluateMetric(config, data_columns, tokenizer)
+    
+    ## manual loop part
+    model_name = "rnn_bi_pxby_81_dim_64_state_2_layer_last"
+    model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder=model_name)  # Your actual model here
+    evaluator.reset(model)
+    results = evaluator.evaluate(model_name)
+    print(results.describe())
+
+
+
+    """    
+    # generation test
     tokenizer = PixelBytesTokenizer()
     generator = SequenceGenerator(tokenizer)
     # initialize sequence (ARRAY)
@@ -28,6 +46,8 @@ if __name__ == '__main__' :
         generator.reset(start_sequence)
         generated_sequence = generator.update_sequence(end_sequence[:,1,1])
         print(np.mean(reference_sequence - generated_sequence)) ## all zero with 50 lenght ! prefer 64 to be large
+    """
+
     '''
     tokenizer = PixelBytesTokenizer()
     model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")

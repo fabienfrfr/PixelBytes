@@ -23,7 +23,7 @@ class SequenceGenerator:
 
     def update_sequence(self, tokens_ids):
         # shape : (1) --> output of model
-        if not hasattr(tokens_ids, '__iter__'):
+        if not(hasattr(tokens_ids, '__iter__')):
             tokens_ids = [tokens_ids]
         for token_id in tokens_ids :
             next_matrix, self.clock = self._process_token(token_id, self.sequence, self.clock)
@@ -53,7 +53,6 @@ class SequenceGenerator:
         # index calculation for sequence ref
         a, b = sequence_clock[-2:]  # step
         i, gap = a + len(seq) - b - 1, b - a  # (0-based)
-    
         def safe_get(seq, index,default=0):
             return seq[index][1,1].item() if 0 <= index < len(seq) else default
     
@@ -75,7 +74,7 @@ class SequenceGenerator:
             elif isinstance(prev_token, bytes):
                 matrix = np.array([[0, 0, 0], [0, token_id, 0], [0,0,0]]) # warning here : change following bytes token, not \n, can cause problem during next generation
                 if prev_token != b'\n' : sequence_clock.append(len(seq))
-            elif gap <= 3:
+            elif len(seq) - b > gap : # line2 > line 1
                 matrix = np.array([[0, 0, 0], [prev_token_id, token_id, 0], [0,0,0]])
             else:
                 matrix = np.array([[safe_get(seq, i), safe_get(seq, i+1), safe_get(seq, i+2)],

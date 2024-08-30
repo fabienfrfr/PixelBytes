@@ -4,14 +4,14 @@
 @author: fabienfrfr
 """
 
+from .generator import SequenceGenerator
+
 import torch
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
 from scipy.spatial.distance import hamming, cosine
 from nltk.translate.bleu_score import sentence_bleu
-from Levenshtein import distance as levenshtein_distance
-from dtaidistance import dtw
 from tqdm import tqdm
 import os
 
@@ -37,15 +37,15 @@ class EvaluateMetric:
 
     def _generate_sequence(self, input_seq: np.ndarray) -> np.ndarray:
         self.sequence_generator.reset(input_seq)
-        input_tensor = torch.from_numpy(input_seq).float().to(self.device)
-        
+        input_tensor = torch.from_numpy(input_seq).long().to(self.device)
+
         with torch.no_grad():
             for _ in range(self.config.generation_length):
                 output = self.model(input_tensor.unsqueeze(0))
-                next_token = output.squeeze().cpu().numpy()
-                self.sequence_generator.update_sequence(next_token)
-                input_tensor = torch.from_numpy(self.sequence_generator.sequence[-self.config.input_seq_length:]).float().to(self.device)
-
+                _, predicted = output.max(1)
+                next_token_id = predicted.squeeze().cpu().numpy().item() # ensure is not numpy object
+                self.sequence_generator.update_sequence(next_token_id)
+                input_tensor = torch.from_numpy(self.sequence_generator.sequence).long().to(self.device)
         return self.sequence_generator.sequence[-self.config.generation_length:]
 
     def evaluate(self, model_name: str) -> pd.DataFrame:
@@ -68,31 +68,15 @@ class EvaluateMetric:
                 
                 target_flat = target_seq.flatten()
                 generated_flat = generated_seq.flatten()
-                target_str = ''.join(map(str, target_flat))
-                generated_str = ''.join(map(str, generated_flat))
                 
                 results.append({
                     "row": row_idx,
                     "n_seq": seq_idx,
-                    "model": model_name,
                     "hamming": hamming(generated_flat, target_flat),
-                    "cosine": cosine(generated_flat, target_flat),
+                    "cosine": 1 - cosine(generated_flat, target_flat),
                     "bleu": sentence_bleu([list(map(str, target_flat))], list(map(str, generated_flat))),
-                    "levenshtein": levenshtein_distance(target_str, generated_str),
-                    "dtw": dtw.distance(target_flat, generated_flat)
                 })
 
         self.df = pd.DataFrame(results)
         self.df.to_csv(os.path.join(self.config.output_dir, f"{model_name}.csv"), index=False)
         return self.df
-"""
-# Usage
-config = EvaluateMetricConfig()
-data = np.random.rand(10, 100, 3, 3)  # Example data
-tokenizer = YourTokenizer()  # Provide your tokenizer here
-evaluator = EvaluateMetric(config, data, tokenizer)
-
-model = YourModel()  # Your actual model here
-evaluator.reset(model)
-results = evaluator.evaluate("model_name")
-"""
