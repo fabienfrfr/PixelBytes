@@ -1,4 +1,4 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{bimamba}
 A.~Author and B.~Author.
@@ -10,9 +10,126 @@ C.~Author and D.~Author.
 \newblock Mambabyte: Selective state space model without tokens.
 \newblock {\em arXiv preprint arXiv:2401.13660}, 2024.
 
+\bibitem{baltrusaitis2019multimodal}
+Tadas Baltru{\v{s}}aitis, Chaitanya Ahuja, and Louis-Philippe Morency.
+\newblock Multimodal machine learning: A survey and taxonomy.
+\newblock {\em IEEE transactions on pattern analysis and machine intelligence},
+  41(2):423--443, 2019.
+
+\bibitem{bradski2000opencv}
+Gary Bradski and Adrian Kaehler.
+\newblock The opencv library.
+\newblock {\em Dr. Dobb's Journal of Software Tools}, 25:120--125, 2000.
+
+\bibitem{brown2020language}
+Tom Brown et~al.
+\newblock Language models are few-shot learners.
+\newblock {\em Advances in neural information processing systems},
+  33:1877--1901, 2020.
+
+\bibitem{gu2022efficiently}
+Albert Gu, Tri Dao, Stefano Ermon, Atri Rudra, and Christopher R{\'e}.
+\newblock Efficiently modeling long sequences with structured state spaces.
+\newblock {\em arXiv preprint arXiv:2111.00396}, 2022.
+
+\bibitem{hamming1950error}
+Richard~W Hamming.
+\newblock Error detecting and error correcting codes.
+\newblock {\em The Bell system technical journal}, 29(2):147--160, 1950.
+
+\bibitem{han2016deep}
+Song Han, Huizi Mao, and William~J Dally.
+\newblock Deep compression: Compressing deep neural networks with pruning,
+  trained quantization and huffman coding.
+\newblock {\em arXiv preprint arXiv:1510.00149}, 2016.
+
+\bibitem{hochreiter1997long}
+Sepp Hochreiter and J{\"u}rgen Schmidhuber.
+\newblock Long short-term memory.
+\newblock {\em Neural computation}, 9(8):1735--1780, 1997.
+
+\bibitem{kiela2018learning}
+Douwe Kiela, Alexis Conneau, Allan Jabri, and Maximilian Nickel.
+\newblock Learning visually grounded sentence representations.
+\newblock In {\em Proceedings of the 2018 Conference of the North American
+  Chapter of the Association for Computational Linguistics: Human Language
+  Technologies, Volume 1 (Long Papers)}, pages 408--418, 2018.
+
+\bibitem{lecun1995convolutional}
+Yann LeCun and Yoshua Bengio.
+\newblock Convolutional networks for images, speech, and time series.
+\newblock {\em The handbook of brain theory and neural networks},
+  3361(10):1995, 1995.
+
+\bibitem{lin2014microsoft}
+Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays, Pietro Perona, Deva
+  Ramanan, Piotr Doll{\'a}r, and C~Lawrence Zitnick.
+\newblock Microsoft coco: Common objects in context.
+\newblock In {\em European conference on computer vision}, pages 740--755.
+  Springer, 2014.
+
+\bibitem{mikolov2013efficient}
+Tomas Mikolov, Kai Chen, Greg Corrado, and Jeffrey Dean.
+\newblock Efficient estimation of word representations in vector space.
+\newblock {\em arXiv preprint arXiv:1301.3781}, 2013.
+
+\bibitem{papineni2002bleu}
+Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing Zhu.
+\newblock Bleu: a method for automatic evaluation of machine translation.
+\newblock In {\em Proceedings of the 40th annual meeting of the Association for
+  Computational Linguistics}, pages 311--318, 2002.
+
 \bibitem{parmar2018image}
 N.~Parmar, A.~Vaswani, J.~Uszkoreit, and et~al.
 \newblock Image transformer.
 \newblock {\em arXiv preprint arXiv:1802.05751}, 2018.
+
+\bibitem{pascanu2014construct}
+Razvan Pascanu, Caglar Gulcehre, Kyunghyun Cho, and Yoshua Bengio.
+\newblock How to construct deep recurrent neural networks.
+\newblock In {\em Proceedings of the Second International Conference on
+  Learning Representations (ICLR 2014)}, 2014.
+
+\bibitem{richardson2007beautiful}
+Leonard Richardson.
+\newblock {\em Beautiful soup documentation}.
+\newblock Crummy, 2007.
+
+\bibitem{schuster1997bidirectional}
+Mike Schuster and Kuldip~K Paliwal.
+\newblock Bidirectional recurrent neural networks.
+\newblock {\em IEEE transactions on Signal Processing}, 45(11):2673--2681,
+  1997.
+
+\bibitem{sutskever2014sequence}
+Ilya Sutskever, Oriol Vinyals, and Quoc~V Le.
+\newblock Sequence to sequence learning with neural networks.
+\newblock {\em Advances in neural information processing systems}, 27, 2014.
+
+\bibitem{tan2019efficientnet}
+Mingxing Tan and Quoc Le.
+\newblock Efficientnet: Rethinking model scaling for convolutional neural
+  networks.
+\newblock {\em International conference on machine learning}, pages 6105--6114,
+  2019.
+
+\bibitem{van2017neural}
+Aaron Van Den~Oord, Oriol Vinyals, et~al.
+\newblock Neural discrete representation learning.
+\newblock In {\em Advances in Neural Information Processing Systems}, pages
+  6306--6315, 2017.
+
+\bibitem{vanderwalt2014scikit}
+St{\'e}fan Van~der Walt, Johannes~L Sch{\"o}nberger, Juan Nunez-Iglesias,
+  Fran{\c{c}}ois Boulogne, Joshua~D Warner, Neil Yager, Emmanuelle Gouillart,
+  and Tony Yu.
+\newblock scikit-image: image processing in python.
+\newblock {\em PeerJ}, 2:e453, 2014.
+
+\bibitem{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
+  Aidan~N Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
+\newblock Attention is all you need.
+\newblock {\em Advances in neural information processing systems}, 30, 2017.
 
 \end{thebibliography}

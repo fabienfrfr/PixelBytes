@@ -1,140 +1,89 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-@author: fabien
+@author: fabienfr
 """
 
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
-# Configuration du style
-plt.style.use('default')  # Utilisation du style par défaut de Matplotlib
-sns.set_theme()  # Application des paramètres de base de Seaborn
-plt.rcParams.update({
-    'font.family': 'serif',
-    'font.serif': ['Times New Roman'] + plt.rcParams['font.serif'],
-    'font.size': 10,
-    'axes.labelsize': 12,
-    'axes.titlesize': 14,
-    'xtick.labelsize': 10,
-    'ytick.labelsize': 10,
-    'legend.fontsize': 10,
-    'figure.titlesize': 16,
-    'axes.grid': True,
-    'grid.alpha': 0.3,
-    'axes.axisbelow': True,
-    'axes.facecolor': '#EAEAF2',
-    'axes.edgecolor': 'none',
-    'axes.linewidth': 0,
-    'figure.facecolor': 'white'
-})
-
-
-def load_csv_files(directory_or_file):
-    data_dict = {}
-    if os.path.isdir(directory_or_file):
-        for file in os.listdir(directory_or_file):
-            if file.endswith('.csv'):
-                model_name = os.path.splitext(file)[0]
-                file_path = os.path.join(directory_or_file, file)
-                data_dict[model_name] = pd.read_csv(file_path)
-    elif os.path.isfile(directory_or_file) and directory_or_file.endswith('.csv'):
-        df = pd.read_csv(directory_or_file)
-        if 'model' in df.columns:
-            for model in df['model'].unique():
-                data_dict[model] = df[df['model'] == model].reset_index(drop=True)
-        else:
-            data_dict['unnamed_model'] = df
+def load_csv_files(directory, separators=['rnn', 'ssm', 'attention']):
+    data_dict = {sep: [] for sep in separators}
+    for file in os.listdir(directory):
+        if file.endswith('.csv'):
+            model_name = os.path.splitext(file)[0]
+            file_path = os.path.join(directory, file)
+            # Determine the model group
+            group = next((sep for sep in separators if sep in model_name.lower()), 'other')
+            # Load the data
+            df = pd.read_csv(file_path)
+            df['model'] = model_name  # Add model name to the dataframe
+            # Add the dataframe to the appropriate list
+            data_dict[group].append(df)
+    # Concatenate dataframes for each group
+    for group in data_dict:
+        if data_dict[group]: data_dict[group] = pd.concat(data_dict[group], ignore_index=True)
+        else: data_dict[group] = pd.DataFrame()  # Empty dataframe if no data for this group
     return data_dict
 
-def combine_eval_results(self):
-    all_results = []
-    for file in os.listdir(self.config.output_dir):
-        if file.endswith(".csv"):
-            df = pd.read_csv(os.path.join(self.config.output_dir, file))
-            all_results.append(df)
-    return pd.concat(all_results, ignore_index=True)
-
-def save_plot(fig, base_name):
-    for ext in ['svg', 'png']:
-        fig.savefig(f"{base_name}.{ext}", format=ext, dpi=300, bbox_inches='tight')
-    plt.close(fig)
-
-def plot_training_results(train_dfs, save_dir):
-    os.makedirs(save_dir, exist_ok=True)
-    metrics = {
-        'loss': ['train_eval_loss', 'test_loss'],
-        'accuracy': ['train_accuracy', 'test_accuracy'],
-        'f1': ['train_f1', 'test_f1']
-    }
+def plot_training_results(data, save_folder=""):
+    plt.rcParams.update({'font.size': 16}) 
+    metrics = [('loss', 'train_eval_loss', 'test_loss', 'Loss'),
+               ('accuracy', 'train_accuracy', 'test_accuracy', 'Accuracy (%)'),]
+               #('f1', 'train_f1', 'test_f1', 'F1 Score')]
+    #fig, axes = plt.subplots(1, 3, figsize=(20, 6), facecolor='white')
+    fig, axes = plt.subplots(1, len(metrics), figsize=(17, 6), facecolor='white')
     
-    for metric_name, columns in metrics.items():
-        fig, ax = plt.subplots(figsize=(10, 6))
-        for model_name, df in train_dfs.items():
-            for col in columns:
-                if col in df.columns:
-                    sns.lineplot(data=df, x='epoch', y=col, ax=ax, label=f'{model_name}_{col}', linewidth=2, marker='o', markersize=4)
-        ax.set_title(f'{metric_name.capitalize()} over Epochs')
-        ax.set_xlabel('Epoch')
-        ax.set_ylabel(metric_name.capitalize())
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-        ax.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        save_plot(fig, os.path.join(save_dir, f'{metric_name}_comparison'))
-
-def plot_evaluation_metrics(eval_dfs, save_dir):
-    os.makedirs(save_dir, exist_ok=True)
-    all_metrics = set()
-    for df in eval_dfs.values():
-        all_metrics.update([col for col in df.columns if col not in ['model', 'generated']])
+    colors = {'rnn': 'blue', 'ssm': 'green', 'attention': 'red'}
     
-    for metric in all_metrics:
-        if metric.endswith(('_min', '_avg', '_max')):
-            base_metric = metric.rsplit('_', 1)[0]
-            fig, ax = plt.subplots(figsize=(10, 6))
-            data = []
-            for model_name, df in eval_dfs.items():
-                if f"{base_metric}_min" in df.columns and f"{base_metric}_max" in df.columns:
-                    data.append({
-                        'model': model_name,
-                        'min': df[f"{base_metric}_min"].iloc[0],
-                        'avg': df[f"{base_metric}_avg"].iloc[0],
-                        'max': df[f"{base_metric}_max"].iloc[0]
-                    })
-            if data:
-                plot_df = pd.DataFrame(data)
-                sns.barplot(x='model', y='avg', data=plot_df, ax=ax)
-                ax.errorbar(x=range(len(plot_df)), y=plot_df['avg'], 
-                            yerr=[plot_df['avg'] - plot_df['min'], plot_df['max'] - plot_df['avg']],
-                            fmt='none', c='black', capsize=5)
-                ax.set_title(f'{base_metric.capitalize()} Comparison')
-                ax.set_xlabel('Model')
-                ax.set_ylabel('Score')
-                plt.xticks(rotation=45)
-                plt.tight_layout()
-                save_plot(fig, os.path.join(save_dir, f'{base_metric}_comparison'))
-        elif not any(metric.endswith(suffix) for suffix in ('_min', '_avg', '_max')):
-            fig, ax = plt.subplots(figsize=(10, 6))
-            for model_name, df in eval_dfs.items():
-                if metric in df.columns:
-                    sns.barplot(x=[model_name], y=[df[metric].iloc[0]], ax=ax)
-            ax.set_title(f'{metric.capitalize()} Comparison')
-            ax.set_xlabel('Model')
-            ax.set_ylabel('Score')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            save_plot(fig, os.path.join(save_dir, f'{metric}_comparison'))
-
-def main(train_results_path, eval_metrics_path):
-    train_dfs = load_csv_files(train_results_path)
-    eval_dfs = load_csv_files(eval_metrics_path)
+    for idx, (metric, train_col, test_col, ylabel) in enumerate(metrics):
+        ax = axes[idx]
+        ax.set_facecolor('white')  # Set the background of each subplot to white
+        
+        max_epoch = 0
+        for group, df in data.items():
+            if not df.empty:
+                sns.lineplot(data=df, x='epoch', y=train_col, ax=ax, label=f'{group.upper()} Train', 
+                             color=colors[group], errorbar='sd', linewidth=2)
+                sns.lineplot(data=df, x='epoch', y=test_col, ax=ax, label=f'{group.upper()} Test', 
+                             color=colors[group], linestyle='--', errorbar='sd', linewidth=2)
+                max_epoch = max(max_epoch, df['epoch'].max())
+        
+        ax.set_xlim(0, max_epoch)  # Set x-axis limits based on data
+        ax.set_ylim(0)  # Set y-axis to start from 0
+        ax.set_xlabel('Epoch', fontsize=18)
+        ax.set_ylabel(ylabel, fontsize=18)
+        ax.tick_params(axis='both', which='major', labelsize=16)
+        
+        # Add a more visible grid
+        ax.grid(True, linestyle='--', alpha=0.5, color='gray')
+        
+        # Add black border
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+        
+        # Remove legend for the first two subplots
+        if idx < 2:
+            ax.get_legend().remove()
     
-    plot_training_results(train_dfs, 'training_plots')
-    plot_evaluation_metrics(eval_dfs, 'nlp_metric_plots')
-
-if __name__ == '__main__':
-    train_results_path = 'path/to/your/train_results_directory_or_file'
-    eval_metrics_path = 'path/to/your/eval_metrics_directory_or_file'
-    main(train_results_path, eval_metrics_path)
+    # Add a single legend to the last subplot
+    handles, labels = axes[-1].get_legend_handles_labels()
+    axes[-1].legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5), fontsize=16)
+    
+    plt.tight_layout()
+    
+    # Create save folder if it doesn't exist
+    if save_folder:
+        os.makedirs(save_folder, exist_ok=True)
+        
+        # Save figures
+        save_path = os.path.join(save_folder, 'training_results')
+        plt.savefig(save_path + '.png', format='png', dpi=300, bbox_inches='tight')
+        plt.savefig(save_path + '.svg', format='svg', bbox_inches='tight')
+    
+    plt.show()
+    plt.close()
+    

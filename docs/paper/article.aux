@@ -16,32 +16,76 @@
 \gdef\HyperFirstAtBeginDocument#1{#1}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{baltrusaitis2019multimodal}
+\citation{brown2020language}
 \citation{parmar2018image}
-\citation{parmar2018image}
-\citation{bimamba}
-\citation{mambabyte}
+\citation{schuster1997bidirectional,bimamba}
+\citation{mikolov2013efficient,mambabyte}
+\citation{tan2019efficientnet}
+\citation{papineni2002bleu}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Example of a generated pixelated Pokémon and its description}}{1}{figure.1}\protected@file@percent }
 \newlabel{fig:example_generation}{{1}{1}{Example of a generated pixelated Pokémon and its description}{figure.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}Model Architecture}{1}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Overview}{1}{subsection.2.1}\protected@file@percent }
+\citation{baltrusaitis2019multimodal}
+\citation{vaswani2017attention}
+\citation{lin2014microsoft}
+\citation{richardson2007beautiful}
+\citation{bradski2000opencv,vanderwalt2014scikit}
+\citation{van2017neural}
+\citation{kiela2018learning}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Model Architecture}{2}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Overview}{2}{subsection.2.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Dataset Construction}{2}{subsection.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.1}Web Scraping from Pokepedia}{2}{subsubsection.2.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.2}Image Pixelation and Text-Image Balance}{2}{subsubsection.2.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.3}Image Quantization and Token Creation}{2}{subsubsection.2.2.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Multimodal Embedding Algorithm}{2}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}PxByEmbed: Multimodal Embedding Algorithm}{2}{subsection.3.1}\protected@file@percent }
-\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces PxByEmbed: Multimodal Embedding Algorithm (k=3) \newline  \textbf  {Input:} $V$: vocabulary size, $D$: embedding dimension \newline  \textbf  {Output:} Embedded representation $\mathbf  {E} \in \mathbb  {R}^{B \times L \times D}$ \newline  \textbf  {Note:} $\mathbf  {X}_{emb} \in \mathbb  {R}^{B \cdot L \times E_{int} \times k \times k}$, $\mathbf  {X}_{flat} \in \mathbb  {R}^{B \cdot L \times E_{int}k^2}$, $\mathbf  {X}_{proj} \in \mathbb  {R}^{B \cdot L \times D}$ }}{2}{algorithm.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Managing Transitions}{2}{subsection.3.2}\protected@file@percent }
+\citation{hochreiter1997long}
+\citation{vaswani2017attention}
+\citation{gu2022efficiently}
+\citation{sutskever2014sequence}
+\citation{hamming1950error}
+\citation{papineni2002bleu}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces PxByEmbed: Multimodal Embedding Algorithm (k=3) \newline  \textbf  {Input:} $V$: vocabulary size, $D$: embedding dimension \newline  \textbf  {Output:} Embedded representation $\mathbf  {E} \in \mathbb  {R}^{B \times L \times D}$ \newline  \textbf  {Note:} $\mathbf  {X}_{emb} \in \mathbb  {R}^{B \cdot L \times E_{int} \times k \times k}$, $\mathbf  {X}_{flat} \in \mathbb  {R}^{B \cdot L \times E_{int}k^2}$, $\mathbf  {X}_{proj} \in \mathbb  {R}^{B \cdot L \times D}$ }}{3}{algorithm.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Training and Evaluation}{3}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Model Architectures}{3}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Training Process}{3}{subsection.4.2}\protected@file@percent }
+\citation{han2016deep}
+\citation{pascanu2014construct}
+\citation{lecun1995convolutional}
+\citation{papineni2002bleu}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Training and validation metrics (Loss, Accuracy, and F1 Score) for RNN, Transformer, and SSM models over 200 epochs.}}{4}{figure.2}\protected@file@percent }
+\newlabel{fig:training_results}{{2}{4}{Training and validation metrics (Loss, Accuracy, and F1 Score) for RNN, Transformer, and SSM models over 200 epochs}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Generation Evaluation Metrics}{4}{subsection.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Comparison of model characteristics and performance (mean $\pm $ std)}}{4}{table.1}\protected@file@percent }
+\newlabel{tab:model_comparison}{{1}{4}{Comparison of model characteristics and performance (mean $\pm $ std)}{table.1}{}}
+\citation{baltrusaitis2019multimodal}
 \bibstyle{plain}
 \bibdata{references}
 \bibcite{bimamba}{1}
 \bibcite{mambabyte}{2}
-\bibcite{parmar2018image}{3}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Managing Transitions}{3}{subsection.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Model Variants and Training}{3}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Model Architectures}{3}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Training Process}{3}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Evaluation Metrics}{3}{subsection.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Results and Discussion}{3}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion and Future Directions}{3}{section.6}\protected@file@percent }
-\gdef \@abspage@last{3}
+\bibcite{baltrusaitis2019multimodal}{3}
+\bibcite{bradski2000opencv}{4}
+\bibcite{brown2020language}{5}
+\bibcite{gu2022efficiently}{6}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Results and Discussion}{5}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Model Performance}{5}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Comparative Analysis}{5}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion and Future Directions}{5}{section.6}\protected@file@percent }
+\bibcite{hamming1950error}{7}
+\bibcite{han2016deep}{8}
+\bibcite{hochreiter1997long}{9}
+\bibcite{kiela2018learning}{10}
+\bibcite{lecun1995convolutional}{11}
+\bibcite{lin2014microsoft}{12}
+\bibcite{mikolov2013efficient}{13}
+\bibcite{papineni2002bleu}{14}
+\bibcite{parmar2018image}{15}
+\bibcite{pascanu2014construct}{16}
+\bibcite{richardson2007beautiful}{17}
+\bibcite{schuster1997bidirectional}{18}
+\bibcite{sutskever2014sequence}{19}
+\bibcite{tan2019efficientnet}{20}
+\bibcite{van2017neural}{21}
+\bibcite{vanderwalt2014scikit}{22}
+\bibcite{vaswani2017attention}{23}
+\gdef \@abspage@last{6}

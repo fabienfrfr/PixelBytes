@@ -8,13 +8,39 @@ TESTS FILE
 from pixelbytes import *
 from datasets import load_dataset
 
-
 ### basic test
 if __name__ == '__main__' :
+
+    #quit()
     # common part
     hf_dataset = load_dataset("ffurfaro/PixelBytes-Pokemon")
+    tokenizer = PixelBytesTokenizer()
+    # reconstruct bulbizarre
+    bulbi = hf_dataset["train"][0]
+    import cv2, numpy as np, pylab as plt
+    Image = np.array(bulbi['image'])
+    #cv2.imwrite('Bulbasaur.png', cv2.cvtColor(Image, cv2.COLOR_BGR2RGB), [cv2.IMWRITE_PNG_COMPRESSION, 0])
+    # init
+    displayer = Displays(tokenizer)
+    model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
+    displayer.reset(model)
+    #model = bMamba.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="ssm_bi_pxby_conv_81_dim_64_state_2_layer_last")
+    first_seq = np.array(hf_dataset["train"]['pixelbyte'][0])
+    N,_,_ = first_seq.shape
+    # set generation --> objective : loop of put 32 seq, gen 8 --> jusqu'a ce que ca soit à N
+    L = int(N//4)
+    input_seq = first_seq[:L]
+    #images, text = displayer.process_sequence(input_seq, N)
+    images, text = displayer.process_and_display(input_seq, N, input_window=32, gen_window=1) # find minimal size for not perturb gen --> for good display
 
-
+    """
+    # plot
+    train_results_path = 'models/train_results'
+    separators = ['rnn', 'ssm', 'attention']
+    train_dfs = load_csv_files(train_results_path,  separators)
+    plot_training_results(train_dfs, 'data')
+    """
+    """
     # evaluation part
     #config = EvaluateMetricConfig(output_dir="models/eval_results")
     data_columns = hf_dataset["train"]['pixelbyte']
@@ -27,9 +53,7 @@ if __name__ == '__main__' :
     evaluator.reset(model)
     results = evaluator.evaluate(model_name)
     print(results.describe())
-
-
-
+    """
     """    
     # generation test
     tokenizer = PixelBytesTokenizer()
@@ -47,7 +71,6 @@ if __name__ == '__main__' :
         generated_sequence = generator.update_sequence(end_sequence[:,1,1])
         print(np.mean(reference_sequence - generated_sequence)) ## all zero with 50 lenght ! prefer 64 to be large
     """
-
     '''
     tokenizer = PixelBytesTokenizer()
     model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
@@ -56,9 +79,7 @@ if __name__ == '__main__' :
     generator = SequenceGenerator(tokenizer)
     reconstructor = SequenceReconstructor(tokenizer)
     # generate complete sequence
-
     complete_sequence = generator.generate_complete(start_sequence, max_length=0, temperature=0.7) 
-    # reconstruction 2D complexe ! car si on commence au milieu de l'image, il est compliqué de savoir les bords !
     print(complete_sequence)
     # Génération en streaming
     print("\nGénération en streaming (incluant la séquence initiale):")
