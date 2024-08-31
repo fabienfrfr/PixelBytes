@@ -22,17 +22,19 @@ if __name__ == '__main__' :
     #cv2.imwrite('Bulbasaur.png', cv2.cvtColor(Image, cv2.COLOR_BGR2RGB), [cv2.IMWRITE_PNG_COMPRESSION, 0])
     # init
     displayer = Displays(tokenizer)
+    #model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_conv_81_dim_32_state_2_layer_last")
     model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
     displayer.reset(model)
     #model = bMamba.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="ssm_bi_pxby_conv_81_dim_64_state_2_layer_last")
-    first_seq = np.array(hf_dataset["train"]['pixelbyte'][0])
-    N,_,_ = first_seq.shape
+    complete_seq = np.array(hf_dataset["train"]['pixelbyte'][0])
+    N,_,_ = complete_seq.shape
     # set generation --> objective : loop of put 32 seq, gen 8 --> jusqu'a ce que ca soit à N
     L = int(N//4)
-    input_seq = first_seq[:L]
-    #images, text = displayer.process_sequence(input_seq, N)
-    images, text = displayer.process_and_display(input_seq, N, input_window=32, gen_window=1) # find minimal size for not perturb gen --> for good display
-
+    input_seq = complete_seq[:L]
+    #images, text = displayer.process_sequence(complete_seq, window=32, gen_window=4)
+    #images, text = displayer.process_sequence(complete_seq, window=64, gen_window=4)
+    images, text = displayer.process_sequence(complete_seq, window=32, gen_window=8)
+    displayer.show(images, text)
     """
     # plot
     train_results_path = 'models/train_results'

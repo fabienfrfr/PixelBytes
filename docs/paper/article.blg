@@ -3,44 +3,47 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: article.aux
 The style file: plain.bst
 Database file #1: references.bib
-You've used 23 entries,
+Warning--I didn't find a database entry for "yan2024multimodal"
+Warning--I didn't find a database entry for "schuster1997bidirectional"
+You've used 21 entries,
             2118 wiz_defined-function locations,
-            631 strings with 8061 characters,
-and the built_in function-call counts, 8423 in all, are:
-= -- 817
-> -- 462
-< -- 5
-+ -- 182
-- -- 158
-* -- 589
-:= -- 1412
-add.period$ -- 70
-call.type$ -- 23
-change.case$ -- 145
+            612 strings with 8216 characters,
+and the built_in function-call counts, 9036 in all, are:
+= -- 826
+> -- 656
+< -- 6
++ -- 260
+- -- 238
+* -- 698
+:= -- 1548
+add.period$ -- 65
+call.type$ -- 21
+change.case$ -- 177
 chr.to.int$ -- 0
-cite$ -- 23
-duplicate$ -- 310
-empty$ -- 602
-format.name$ -- 158
-if$ -- 1743
+cite$ -- 21
+duplicate$ -- 288
+empty$ -- 546
+format.name$ -- 238
+if$ -- 1821
 int.to.chr$ -- 0
-int.to.str$ -- 23
-missing$ -- 24
-newline$ -- 118
-num.names$ -- 46
-pop$ -- 146
+int.to.str$ -- 21
+missing$ -- 21
+newline$ -- 107
+num.names$ -- 42
+pop$ -- 195
 preamble$ -- 1
-purify$ -- 123
+purify$ -- 157
 quote$ -- 0
-skip$ -- 239
+skip$ -- 222
 stack$ -- 0
-substring$ -- 484
-swap$ -- 77
-text.length$ -- 5
+substring$ -- 383
+swap$ -- 79
+text.length$ -- 6
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 90
+type$ -- 82
 warning$ -- 0
-while$ -- 75
-width$ -- 25
-write$ -- 248
+while$ -- 64
+width$ -- 23
+write$ -- 224
+(There were 2 warnings)

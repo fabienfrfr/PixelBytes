@@ -22,57 +22,47 @@
 
 \maketitle
 
+
 \begin{abstract}
-This report introduces PixelBytes, a multimodal embedding model designed for generating text and pixelated images simultaneously. We present the PxByEmbed algorithm, which facilitates the efficient representation of mixed sequences. Our approach utilizes web-scraped Pokémon data, image processing techniques, and machine learning methods to create a specialized dataset and training pipeline. The dataset balances text and pixelated images, ensuring an equilibrium in token representation. We constructed it by scraping data from Pokepedia, applying pixelation using OpenCV and scikit-image, and quantizing images with a NES-inspired color palette. We evaluate various model architectures, including Recurrent Neural Networks (RNNs), Transformers, and Mamba models, using metrics such as Hamming distance, cosine similarity, and BLEU scores. Initial results suggest that bidirectional RNN models with PxBy embedding and convolutional layers perform well in generating coherent sequences. Our findings also indicate that compact models can be effective, challenging the assumption that larger models are always superior. Additionally, we observe robustness to input size variations and potential benefits from increased model depth. These insights contribute to the ongoing exploration of model architecture design and the trade-offs between complexity and performance in multimodal generation tasks.
+This report introduces PixelBytes Embedding, a novel approach for unified multimodal representation learning. Our method captures diverse inputs in a single, cohesive representation, enabling emergent properties for multimodal sequence generation, particularly for text and pixelated images. Inspired by state-of-the-art sequence models such as Image Transformers, PixelCNN, and Mamba-Bytes, PixelBytes aims to address the challenges of integrating different data types. We explore various model architectures, including Recurrent Neural Networks (RNNs), State Space Models (SSMs), and Attention-based models, focusing on bidirectional processing and our innovative PxBy embedding technique. Our experiments, conducted on a specialized PixelBytes Pokémon dataset, demonstrate that bidirectional sequence models with PxBy embedding and convolutional layers can generate coherent multimodal sequences. This work contributes to the advancement of integrated AI models capable of understanding and generating multimodal data in a unified manner. Code is available at \url{https://github.com/fabienfrfr}.
 \end{abstract}
+
+\let\thefootnote\relax\footnotetext{$^{*}$ Corresponding author: Fabien Furfaro (\url{fabien.furfaro@gmail.com}).}
+
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.8\linewidth]{example_generation.png}
-\caption{Example of a generated pixelated Pokémon and its description}
+\caption{Example of a PixelBytes-generated Pokémon and its description. Left: Generated pixelated image. Right: Corresponding text description. The red box indicates the model's attention window for both pixels and words. Note that the model currently exhibits some inaccuracies in image generation and occasionally invents words, highlighting areas for future improvement.}
 \label{fig:example_generation}
 \end{figure}
 
 \section{Introduction}
 
-Multimodal sequence generation, combining diverse data types such as text and numerical sequences, presents a significant challenge in artificial intelligence \cite{baltrusaitis2019multimodal}. While models like GPT have excelled in text generation \cite{brown2020language}, there's a growing need for unified approaches that can seamlessly handle varied data types. Building upon these findings, PixelBytes aims to address the challenge of unified text and image generation by proposing a model capable of producing mixed sequences of text and images in a coherent and unified manner. We draw inspiration from state-of-the-art sequence models, including Image Transformers \cite{parmar2018image}, and recent developments in bidirectional architectures \cite{schuster1997bidirectional, bimamba} and embedding techniques \cite{mikolov2013efficient, mambabyte}. We explore various architectures including Recurrent Neural Networks (RNNs), State Space Models (SSMs), and Attention-based models, focusing on:
+Recent advancements in artificial intelligence have led to increasingly generalist models, not by combining multiple specialized components, but by giving simple tasks to models where emergent properties—complex behaviors that arise from simpler underlying rules—appear. This is the case with generative language models like GPT \cite{brown2020language}. However, these models are limited by their focus on language alone, failing to capture the full complexity of multimodal understanding \cite{alayrac2023language}. To address this limitation, researchers have explored combining LLMs with other modalities \cite{radford2021learning, ramesh2022hierarchical}. But this brings us back to the initial problem, as it often results in specialized model combinations without allowing for new emergent properties. We propose "PixelBytes Embedding", a novel approach enabling unified training across modalities by capturing diverse inputs in a single, cohesive representation.
 
-\begin{itemize}
-    \item The effectiveness of bidirectional processing
-    \item Novel embedding techniques, particularly PxBy embedding
-    \item The impact of convolutional layers
-    \item Effects of model depth, input dimensionality, and model size
-\end{itemize}
+Multimodal sequence generation, which involves the creation of coherent outputs combining various data types such as text, images, and numerical sequences, presents a significant challenge in artificial intelligence \cite{baltrusaitis2019multimodal}. While models like GPT have excelled in text generation \cite{brown2020language}, there's a growing need for unified approaches that can seamlessly handle varied data types. Building upon these findings, PixelBytes aims to address the challenge of unified text and image generation by proposing a model capable of producing mixed sequences of text and images in a coherent and unified manner. We draw inspiration from state-of-the-art sequence models, including Image Transformers \cite{parmar2018image}, PixelCNN \cite{oord2016conditional}, and recent developments in bytes generation by mamba architectures \cite{wang2024mamba}.
 
-Our experiments reveal that compact bidirectional RNN models with PxBy embedding and convolutional layers demonstrate superior performance in generating coherent sequences. This finding challenges the notion that larger models are always better, aligning with recent research on model efficiency \cite{tan2019efficientnet}. We evaluate our models using Hamming distance, cosine similarity, and BLEU scores, providing a comprehensive assessment of sequence similarity and quality \cite{papineni2002bleu}. Our results show robustness to input size variations and highlight the benefits of increased model depth in certain scenarios. This paper presents our methodology, experimental results, and analysis, contributing to the development of more effective and versatile sequence generation models.
+Our research explores various architectures including Recurrent Neural Networks (RNNs), State Space Models (SSMs), and Attention-based models, focusing on the effectiveness of bidirectional processing \cite{gu2023visual, gu2023bidirectional}, novel embedding techniques (particularly PxBy embedding, which unifies pixel and byte-level representations), the impact of convolutional layers, effects of model depth, input dimensionality, and size. Our experiments reveal that bidirectional sequence models with PxBy embedding and convolutional layers demonstrate good performance in generating coherent sequences.
+
+Our results show that it is possible to train sequence models with unified embeddings for both text and pixel completion. This paper presents our methodology to construct unified sequence data from text and image, experimental results, and analysis, contributing to the development of our sequence generation embedding models. The proposed PixelBytes Embedding approach has the potential to significantly advance the field of multimodal AI, enabling more integrated and versatile models capable of understanding and generating diverse types of data. This could lead to improvements in areas such as visual question answering, image captioning, and multimodal content generation for virtual and augmented reality applications.
 
 \section{Model Architecture}
 
 \subsection{Overview}
-PixelBytes integrates several innovative components to achieve its multimodal generation capabilities:
-\begin{itemize}
-    \item A tokenizer sequence constructor for pixelated images and byte-level text representation
-    \item A unified multimodal embedding (PxByEmbed)
-    \item A bidirectional RNN with convolutional layers for sequence processing
-\end{itemize}
-
-This architecture is inspired by recent advancements in multimodal learning \cite{baltrusaitis2019multimodal} and efficient sequence modeling \cite{vaswani2017attention}.
+The PixelBytes architecture is designed to seamlessly integrate multimodal data for unified sequence generation. At its core, the model incorporates two key innovative components: a specialized tokenizer sequence constructor and a unified multimodal embedding technique called PxByEmbed. The tokenizer sequence constructor is engineered to process both pixelated images and text at a byte level, enabling a consistent representation across modalities. This is complemented by PxByEmbed, our novel embedding approach that creates a unified representation for both pixel and byte data in a single, coherent space. This architecture draws inspiration from recent advancements in multimodal learning \cite{baltrusaitis2019multimodal} and efficient sequence modeling \cite{vaswani2017attention}, allowing PixelBytes to capture intrinsic relationships between visual and textual information effectively.
 
 \subsection{Dataset Construction}
 
-Existing image-captioning datasets often prove unsuitable for combined text and image generation due to limited text content and difficulties in interpreting pixelated versions of high-resolution images. To address this, we developed a specialized dataset based on Pokémon data, offering advantages such as a long-standing franchise history, availability of pixelated designs, rich descriptive text, and a diverse collection of over 1000 unique Pokémon. This approach aligns with recent trends in creating specialized datasets for multimodal learning tasks \cite{lin2014microsoft}.
+Image captioning datasets, while combining visual and textual modalities, prove unsuitable for joint text and image generation due to limited text content and difficulties in interpreting pixelated versions of high-resolution images. To address these limitations, we developed a specialized Pokémon dataset, offering advantages such as a long-standing franchise history, pixelated designs, rich descriptive text, and over 1000 unique Pokémon. This aligns with trends in creating specialized datasets for multimodal learning \cite{lin2014microsoft}. 
 
-We constructed our dataset by web scraping miniatures and descriptions from Pokepedia using Beautiful Soup \cite{richardson2007beautiful}. The scraped images were then pixelated using OpenCV and scikit-image libraries \cite{bradski2000opencv, vanderwalt2014scikit} to create a retro aesthetic. We maintained a 2/3 text to 1/3 image ratio in the dataset to ensure comprehensive training on both modalities.
-
-For image quantization, we used a palette inspired by the NES color scheme (55 colors), creating tokens that represent different color and position combinations. This approach effectively translates visual information into a format suitable for sequence modeling, similar to recent work in discrete representation learning for images \cite{van2017neural}. The quantization process was implemented using OpenCV and scikit-image, with the NES palette sourced from web-based color palette resources. To ensure a balanced representation, we carefully adjusted the number of image and text tokens, resulting in a total of 113 characters for each modality. This equilibrium allows the model to learn equally from both visual and textual information during training.
-
-The final dataset, balancing text and pixelated images, was uploaded to the Hugging Face Datasets Hub for easy access and reproducibility.
+We constructed our dataset by web scraping Pokémon miniatures and descriptions from Pokepedia using Beautiful Soup \cite{richardson2007beautiful}, maintaining a 2/3 text to 1/3 image ratio. For image quantization, we employed a 55-color palette inspired by the NES, creating tokens representing different color combinations. This approach translates visual information into a format suitable for sequence modeling, similar to recent work in discrete representation learning for images \cite{van2017neural}. The quantization and pixelization process used OpenCV and scikit-image \cite{bradski2000opencv, vanderwalt2014scikit}. To ensure balanced representation, we adjusted the number of image and text tokens to 113 characters for each modality, allowing the model to learn equally from both visual and textual information. The final dataset, balancing text and pixelated images, is available on the Hugging Face Datasets Hub for reproducibility at \url{https://huggingface.co/datasets/ffurfaro/PixelBytes-Pokemon}.
 
 \section{Multimodal Embedding Algorithm}
 
 \subsection{PxByEmbed: Multimodal Embedding Algorithm}
 
-At the core of our approach is the PxByEmbed algorithm, which represents mixed sequences of text and images in a unified manner. This algorithm extends classical embedding techniques by incorporating spatial adaptivity, allowing for more effective representation of both textual and visual information. PxByEmbed builds upon recent advancements in multimodal embeddings \cite{kiela2018learning} and adapts them for the specific needs of pixel-level image representation and byte-level text encoding. The algorithm employs a learned embedding matrix that maps each token (whether text or image) to a high-dimensional vector space, while preserving spatial relationships for image tokens.
+At the core of our approach is the PxByEmbed algorithm, which represents mixed sequences of text and pixelated images in a unified manner. This algorithm builds upon existing embedding techniques by incorporating spatial adaptivity, allowing for representation of both textual and visual information. PxByEmbed is designed to address the specific needs of pixel-level image representation and byte-level text encoding. The algorithm uses a learned embedding matrix to map each token (text or image) to a vector space, while maintaining spatial relationships for image tokens. This approach allows our model to handle both modalities within a single framework.
 
 \begin{algorithm}[h]
 \caption{PxByEmbed: Multimodal Embedding Algorithm (k=3)
@@ -111,60 +101,48 @@ $\mathbf{X}_{proj} \in \mathbb{R}^{B \cdot L \times D}$
 
 \subsection{Managing Transitions}
 
-PixelBytes employs a refined approach to manage transitions between text and image tokens, ensuring coherence during mixed sequence generation. This strategy is applied in both dataset construction and sequence generation.
+PixelBytes uses a method to handle transitions between text and image tokens during sequence generation. This approach is used in both dataset construction and sequence generation (Figure \ref{fig:example_generation}).
 
-In the dataset construction phase, we utilize a 2D input sequence method that creates a context window around each token. This method features a configurable 3x3 context window, special separator tokens for modality transitions, and padding to maintain consistent context sizes. Additionally, future tokens are masked to introduce time asymmetry. The \texttt{input\_seq\_construct} function implements these strategies by padding the input array and generating a 3D array where each slice represents the context of a token. This enables the model to learn spatial relationships, which is vital for maintaining coherence in mixed sequences.
+For dataset construction, we use a 2D input sequence method with a 3x3 context window around each token. We use special tokens to mark transitions between text and images, and add padding to keep context sizes consistent. For text, only previous tokens are included in the context windows. The \texttt{input\_seq\_construct} function implements this process.
 
-During sequence generation, transitions are managed dynamically through the \texttt{\_process\_token} function. This function differentiates between text tokens (bytes) and image tokens (tuples) while handling newline (\texttt{\textbackslash n}) and tab (\texttt{\textbackslash t}) characters for line breaks and indentation. It also maintains a \texttt{sequence\_clock} to track progression and manage transitions. Each new token's context is represented in a 3x3 matrix, informing the model of its position relative to surrounding tokens.
-
-This dynamic approach allows PixelBytes to maintain coherence when transitioning between text and image modalities, ensuring that generated sequences respect the structural integrity of both text and pixel-based images.
-
+During sequence generation, the \texttt{\_process\_token} function manages transitions. It handles text tokens (bytes) and image tokens (tuples) differently, and takes care of special characters like newlines and tabs. A \texttt{sequence\_clock} keeps track of the generation progress. Each new token's context is represented in a 3x3 matrix, which helps maintain coherence when switching between text and images.
 
 \section{Training and Evaluation}
 
 \subsection{Model Architectures}
-We implemented and compared three different model architectures: Recurrent Neural Network (RNN), specifically using bidirectional Long Short-Term Memory (LSTM) units \cite{hochreiter1997long}, Transformer \cite{vaswani2017attention}, and Mamba, which is based on the State Space Model (SSM) \cite{gu2022efficiently}. Each architecture was tailored to effectively process our multimodal dataset, which combines pixel data and bytecode sequences from NES games.
-
-\subsection{Training Process}
-Training was conducted on dual T4 GPUs from Kaggle, which facilitated the experimentation with these advanced architectures and our large multimodal dataset. The training regime employed various hyperparameters, including a batch size of 32, a learning rate of 0.001, and a total of 200 epochs, with evaluations performed every 5 epochs.
+We tested three different model types: Recurrent Neural Network (RNN) using bidirectional Long Short-Term Memory (LSTM) units \cite{hochreiter1997long}, Transformer \cite{vaswani2017attention}, and Mamba, which is based on the State Space Model (SSM) \cite{gu2022efficiently}. Each model was adapted to work with our dataset of pixel data and bytecode sequences. We trained the models on Kaggle using dual T4 GPUs. We used a batch size of 32, sequence length of 256, learning rate of 0.001, and trained for 200 epochs, checking the model's performance every 5 epochs. The trained models are available at \url{https://huggingface.co/ffurfaro/PixelBytes-Pokemon}.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{training_results.png}
-\caption{Training and validation metrics (Loss, Accuracy, and F1 Score) for RNN, Transformer, and SSM models over 200 epochs.}
+\caption{Training and validation metrics (Loss, Accuracy) for RNN, Transformer, and SSM models over 200 epochs.}
 \label{fig:training_results}
 \end{figure}
 
-Figure \ref{fig:training_results} illustrates the training and validation metrics for our three model architectures over the course of 200 epochs. The results reveal distinct performance patterns across the different architectures. The State Space Models (SSM) achieved the best training scores in terms of loss, accuracy, and F1 score. However, as evident from the widening gap between training and validation curves, they exhibited signs of overfitting over the epochs. This suggests that while SSMs quickly learned to fit the training data, they struggled to generalize to unseen examples.
+Figure \ref{fig:training_results} shows the training and validation metrics for our three model types over 200 epochs. The State Space Models (SSM) achieved the best scores for loss and accuracy. However, the widening gap between their training and validation curves suggests they may be overfitting, meaning they learned the training data well but struggled to generalize to new examples.
 
-In contrast, the LSTMs, denoted as RNNs in our analysis, demonstrated more balanced performance. The closer alignment of their training and validation curves indicates a better compromise between model capacity and generalization capabilities. This robustness makes RNNs a strong candidate for our task of NES game data processing and generation. Interestingly, the Transformer architecture yielded the lowest performance metrics among the three models. This outcome is noteworthy and should be contextualized, as our implementation did not incorporate positional encoding, which is crucial for the effective functioning of transformer models in sequence tasks. The relatively poor performance of the Transformer model underscores the importance of architecture-specific optimizations in sequence modeling tasks.
+In contrast, the LSTMs (referred to as RNNs in our analysis) demonstrated more balanced performance. The closer alignment of their training and validation curves indicates they may generalize better to unseen data. The Transformer model had the lowest performance among the three. This could be due to the absence of positional encoding, which is important for Transformers in sequence tasks.
 
-Overall, these results highlight the trade-offs between different architectures and the importance of careful model selection and tuning for our specific task. While SSMs showed impressive training performance, their tendency to overfit suggests that additional regularization techniques might be necessary for optimal performance. The stable performance of RNNs across both training and validation sets indicates their suitability for this particular task, balancing good fit and generalization.
+Overall, these results highlight the strengths and weaknesses of each model type. While SSMs showed strong training performance, their tendency to overfit suggests that additional regularization techniques might be needed. The stable performance of RNNs indicates their suitability for our task, as they balance well between fitting the training data and generalizing to new data. The Transformer's performance suggests it may require further adjustments to improve its effectiveness for this task.
 
 \subsection{Generation Evaluation Metrics}
 
-Our experiments utilize various model architectures including State Space Models (SSM), Attention models (Att), and Recurrent Neural Networks (RNN) for generating 16 consecutive sequences. We employ three key metrics as described by \cite{sutskever2014sequence}, \cite{hamming1950error}, and \cite{papineni2002bleu}:
-
-\begin{itemize}
-    \item \textbf{Hamming Distance}: Scaled 0-1, lower values indicate greater similarity.
-    \item \textbf{Cosine Similarity}: Ranges -1 to 1, higher values suggest greater similarity.
-    \item \textbf{BLEU Score}: Varies 0-1, higher scores indicate better quality.
-\end{itemize}
+We tested different model types including State Space Models (SSM), Attention models (Att), and Recurrent Neural Networks (RNN) for generating 16 consecutive sequences. We used three metrics to evaluate their performance: Hamming Distance, Cosine Similarity, and BLEU Score \cite{sutskever2014sequence, hamming1950error, papineni2002bleu}.
 
 \begin{table}[h]
 \centering
 \small
 \begin{tabular}{cccccccccc}
 \hline
-Type & Dir. & Emb. & Conv. & In & Mod & Depth & Hamming & Cosine & BLEU \\
+Type & Dir. & Emb. & Conv. & In Emb & Hidden State & Depth & Hamming & Cosine & BLEU \\
 \hline
 SSM & Bi & PxBy & Y & 81 & 64 & 1 & 0.170 $\pm$ 0.086 & 0.883 $\pm$ 0.105 & 0.753 $\pm$ 0.115 \\
 SSM & Bi & PxBy & Y & 81 & 64 & 2 & 0.158 $\pm$ 0.074 & 0.896 $\pm$ 0.095 & 0.771 $\pm$ 0.097 \\
 SSM & Uni & PxBy & Y & 81 & 64 & 2 & 0.166 $\pm$ 0.081 & 0.886 $\pm$ 0.102 & 0.760 $\pm$ 0.106 \\
-Att & Bi & PxBy & Y & 81 & 64 & 1 & 0.157 $\pm$ 0.064 & 0.887 $\pm$ 0.103 & 0.765 $\pm$ 0.088 \\
-Att & Bi & PxBy & Y & 81 & 64 & 2 & 0.159 $\pm$ 0.066 & 0.887 $\pm$ 0.103 & 0.760 $\pm$ 0.092 \\
-RNN & Bi & Center & Y & 81 & 64 & 2 & 0.185 $\pm$ 0.074 & 0.888 $\pm$ 0.083 & 0.750 $\pm$ 0.093 \\
-RNN & Bi & PxBy & N & 81 & 64 & 2 & 0.153 $\pm$ 0.061 & 0.902 $\pm$ 0.090 & 0.777 $\pm$ 0.083 \\
+Att & - & PxBy & Y & 81 & 64 & 1 & 0.157 $\pm$ 0.064 & 0.887 $\pm$ 0.103 & 0.765 $\pm$ 0.088 \\
+Att & - & PxBy & Y & 81 & 64 & 2 & 0.159 $\pm$ 0.066 & 0.887 $\pm$ 0.103 & 0.760 $\pm$ 0.092 \\
+RNN & Bi & Center & N & 81 & 64 & 2 & 0.185 $\pm$ 0.074 & 0.888 $\pm$ 0.083 & 0.750 $\pm$ 0.093 \\
+RNN & Bi & PxBy & Y & 81 & 64 & 2 & 0.153 $\pm$ 0.061 & 0.902 $\pm$ 0.090 & 0.777 $\pm$ 0.083 \\
 RNN & Bi & PxBy & Y & 162 & 64 & 2 & 0.152 $\pm$ 0.062 & 0.905 $\pm$ 0.089 & 0.778 $\pm$ 0.084 \\
 RNN & Bi & PxBy & Y & 36 & 64 & 2 & 0.152 $\pm$ 0.061 & 0.904 $\pm$ 0.090 & 0.778 $\pm$ 0.083 \\
 RNN & Bi & PxBy & Y & 81 & 128 & 2 & 0.153 $\pm$ 0.063 & 0.903 $\pm$ 0.091 & 0.776 $\pm$ 0.086 \\
@@ -179,45 +157,19 @@ RNN & Uni & PxBy & Y & 81 & 64 & 2 & 0.153 $\pm$ 0.064 & 0.904 $\pm$ 0.088 & 0.7
 \label{tab:model_comparison}
 \end{table}
 
-The results reveal interesting patterns across different model architectures. SSM models show competitive performance, with the bidirectional 2-layer model achieving better results than its unidirectional counterpart. Attention models demonstrate consistent performance across depths, with slight improvements in the 1-layer model. RNN models, particularly those with PxBy embedding, consistently outperform other architectures. The best Hamming distance (0.149 $\pm$ 0.062) and BLEU score (0.785 $\pm$ 0.082) are achieved by the bidirectional PxBy RNN model with convolution, 81 input dimensions, and 32 model dimensions. This suggests that a more compact RNN model can effectively capture sequence patterns, aligning with findings on model compression \cite{han2016deep}.
+The results show that RNN models with PxBy embedding generally perform better than other types. The best Hamming distance (0.149 $\pm$ 0.062) and BLEU score (0.785 $\pm$ 0.082) come from the bidirectional PxBy RNN model with convolution, 81 embedding dimensions, and 32 hidden state dimensions. This suggests that a smaller hidden state in the RNN model can effectively capture sequence patterns.
 
-The highest cosine similarity (0.906 $\pm$ 0.087) is obtained by the 3-layer RNN model, indicating that increased depth can enhance sequence alignment \cite{pascanu2014construct}. Convolution generally improves performance in RNN models, supporting \cite{lecun1995convolutional}'s findings on local pattern capture. Interestingly, varying the input dimension (36, 81, 162) in RNN models had minimal impact on performance, suggesting robustness to input size changes. The center embedding in RNNs showed lower performance compared to PxBy embedding, highlighting the effectiveness of the latter for this task.
+The highest cosine similarity (0.906 $\pm$ 0.087) is from the 3-layer RNN model, indicating that more layers can improve sequence alignment. Adding convolution usually improves RNN model performance. Interestingly, changing the embedding dimension (36, 81, 162) in RNN models didn't affect performance much, suggesting these models can handle different embedding sizes well. The center embedding in RNNs didn't perform as well as PxBy embedding for this task.
 
 \section{Results and Discussion}
 
-Our experiments with various model architectures and configurations yielded significant findings for the task of NES game data processing and generation. We evaluated the performance of the models based on several metrics, including Hamming distance, cosine similarity, and BLEU score \cite{papineni2002bleu}.
+Our experiments with various model architectures tested the effectiveness of unified text and image generation. We evaluated model performance using Hamming distance, cosine similarity, and BLEU score \cite{papineni2002bleu}. Bidirectional RNN models using PixelBytes (PxBy) embedding with convolutional layers generally performed better across our metrics. The PxBy embedding improved the mean BLEU score from 0.750 to 0.777 compared to a center-only approach, indicating its effectiveness in representing multimodal data. This finding aligns with recent work emphasizing the importance of effective multimodal embeddings in text-to-image generation tasks \cite{yan2024multimodal}.
 
-\subsection{Model Performance}
+Bidirectional models showed a slight advantage over unidirectional ones, with BLEU scores of 0.777 and 0.776 respectively. This suggests that bidirectionality may help capture sequential dependencies, consistent with other studies in sequence modeling \cite{schuster1997bidirectional}. Notably, varying state dimensions (32, 64, 128) had minimal impact on performance, with BLEU scores ranging from 0.775 to 0.784. While RNN models showed strong performance in our experiments, State Space Models (SSM) demonstrated rapid convergence during training, suggesting potential for future exploration in multimodal data processing. This is in line with recent advancements in SSM for sequence modeling tasks \cite{gu2022efficiently}.
 
-The bidirectional RNN models, particularly those utilizing PixelBytes (PxBy) embedding with convolutional layers, consistently outperformed other architectures across our evaluation metrics. Key observations include:
+\section{Conclusion and Future Work}
 
-\begin{itemize}
-    \item \textbf{Embedding Strategy}: The PxBy embedding strategy significantly enhanced model performance. The mean BLEU score improved from 0.750 for the center-only approach to 0.777 for the PxBy embedding, demonstrating the importance of utilizing richer representations of the input data.
-    
-    \item \textbf{Model Architecture}: Bidirectional models outperformed their unidirectional counterparts. The bidirectional RNN achieved a BLEU score of 0.777, compared to 0.776 for the unidirectional model, suggesting that bidirectionality is crucial for capturing the dependencies in sequential data.
-    
-    \item \textbf{Model Configuration}: Variations in state dimension and layer count had minimal impact on performance. Models with state dimensions of 32, 64, and 128 achieved BLEU scores of 0.784, 0.777, and 0.775 respectively, indicating that our base configuration was sufficiently expressive for the task.
-\end{itemize}
-
-\subsection{Comparative Analysis}
-
-The superior performance of bidirectional PxBy RNN models with convolution for our sequence modeling task is evident. However, the potential of State Space Models (SSM) and Attention models in certain scenarios cannot be overlooked. The SSM models, in particular, exhibited rapid convergence and strong training performance, suggesting their viability for future exploration in multimodal data processing.
-
-These findings contribute to the growing body of research on multimodal sequence modeling \cite{baltrusaitis2019multimodal} and highlight the importance of architecture selection and embedding strategies in processing complex, multimodal data such as video game content.
-
-\section{Conclusion and Future Directions}
-
-This study on PixelBytes opens new avenues in unified multimodal generation, demonstrating promising potential for coherent text-image generation in the context of NES game data. The superior performance of bidirectional RNN models with PxBy embedding underscores the importance of comprehensive spatial information and context in processing game data. Future work will focus on:
-
-\begin{itemize}
-    \item Refining the PxByEmbed algorithm to further improve its effectiveness in capturing spatial and temporal relationships in game data.
-    \item Exploring larger and more diverse datasets to enhance the generalizability of our models.
-    \item Investigating applications in creative content generation, such as level design or narrative creation for retro-style games.
-    \item Further optimizing SSM and Attention models to better compete with RNN architectures in this specific domain.
-\end{itemize}
-
-These directions aim to build upon our current findings and push the boundaries of multimodal sequence modeling in the context of video game content generation.
-
+This study on PixelBytes highlights the potential for unified text-image generation, contributing to the growing field of multimodal AI \cite{baltrusaitis2019multimodal}. The performance of bidirectional RNN models with PxBy embedding underscores the importance of capturing both spatial and contextual information in multimodal data. Future work could focus on refining the PxByEmbed algorithm, testing on larger and more diverse datasets, exploring creative applications of multimodal generation, and further optimizing SSM and Attention models. These efforts aim to advance multimodal sequence modeling and generation techniques, addressing challenges identified in surveys of the field \cite{lin2014microsoft}.
 
 \bibliographystyle{plain}
 \bibliography{references}

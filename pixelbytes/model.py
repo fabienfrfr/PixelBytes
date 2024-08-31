@@ -14,7 +14,10 @@ try :
     from mamba_ssm.modules.mamba_simple import Mamba
 except :
     print('No mamba_ssm CUDA modules installed...')
-    from mambapy.mamba import Mamba
+    import mambapy.mamba as mambapy
+    def Mamba(d_model, d_state, d_conv, expand) :
+        config = mambapy.MambaConfig(d_model, d_state, d_conv, expand)
+        return mambapy.Mamba(config) ## doesnt works.. need to change prefix and state_dict..
 
 ### Multimodal embedding        
 class PxByEmbed(nn.Module):

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.14)  30 AUG 2024 23:38
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.14)  31 AUG 2024 18:31
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -436,87 +436,105 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 24.
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-<example_generation.png, id=64, 1445.4pt x 722.7pt>
+LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 2
+7.
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/t1cmtt.fd
+File: t1cmtt.fd 2019/12/16 v2.5j Standard LaTeX font definitions
+)
+
+Package hyperref Warning: Ignoring empty anchor on input line 30.
+
+<example_generation.png, id=54, 1293.52008pt x 446.79422pt>
 File: example_generation.png Graphic file (type png)
 <use example_generation.png>
-Package pdftex.def Info: example_generation.png  used on input line 31.
-(pdftex.def)             Requested size: 409.72125pt x 204.85785pt.
- [1
+Package pdftex.def Info: example_generation.png  used on input line 35.
+(pdftex.def)             Requested size: 409.72125pt x 141.51811pt.
+[1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}pdfTeX warning (ext4): desti
 nation with the same identifier (name{figure.1}) has been already used, duplica
 te ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.48 
+l.47 
       <./example_generation.png>]
 Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
-put line 87.
+put line 77.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 1
-16.
-(/usr/share/texlive/texmf-dist/tex/latex/base/t1cmtt.fd
-File: t1cmtt.fd 2019/12/16 v2.5j Standard LaTeX font definitions
-) [2]
-<training_results.png, id=121, 1207.8726pt x 415.0707pt>
+[2]
+<training_results.png, id=118, 1207.8726pt x 415.0707pt>
 File: training_results.png Graphic file (type png)
 <use training_results.png>
-Package pdftex.def Info: training_results.png  used on input line 133.
+Package pdftex.def Info: training_results.png  used on input line 117.
 (pdftex.def)             Requested size: 512.14963pt x 176.00053pt.
- [3] [4pdfTeX warning (ext4): destination with the same identifier (name{figure
-.2}) has been already used, duplicate ignored
+ [3pdfTeX warning (ext4): destination with the same identifier (name{figure.2})
+ has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.189 
-      pdfTeX warning (ext4): destination with the same identifier (name{table.1
-}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.189 
-       <./training_results.png>] (./article.bbl [5]) [6] (./article.aux)
+l.126 O
+       verall, these results highlight the strengths and weaknesses of each ...
+ <./training_results.png>]
 
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+LaTeX Warning: Citation `yan2024multimodal' on page 4 undefined on input line 1
+66.
+
+
+LaTeX Warning: Citation `schuster1997bidirectional' on page 4 undefined on inpu
+t line 168.
+
+(./article.bbl [4pdfTeX warning (ext4): destination with the same identifier (n
+ame{table.1}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.1 \begin{thebibliography}{10}
+                               ]) [5] (./article.aux)
+
+LaTeX Warning: There were undefined references.
 
 Package rerunfilecheck Info: File `article.out' has not changed.
-(rerunfilecheck)             Checksum: 09E4AA5210DEC68B84EBEF4CF3697746;2475.
+(rerunfilecheck)             Checksum: ECF585A880E126F48034B0196E559572;1997.
  ) 
 Here is how much of TeX's memory you used:
- 11013 strings out of 480145
- 169478 string characters out of 5893300
- 469015 words of memory out of 5000000
- 28752 multiletter control sequences out of 15000+600000
- 489167 words of font info for 80 fonts, out of 8000000 for 9000
+ 11009 strings out of 480145
+ 169407 string characters out of 5893300
+ 471228 words of memory out of 5000000
+ 28751 multiletter control sequences out of 15000+600000
+ 490988 words of font info for 83 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
- 60i,9n,63p,1434b,447s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 60i,9n,63p,1239b,345s stack positions out of 5000i,500n,10000p,200000b,80000s
  </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1000.60
 0pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/eccc1000.
 600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx100
 0.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1
 000.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecb
-x1200.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/t
-crm1000.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec
-/ecrm1000.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/
-ec/ecrm0900.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappe
-n/ec/ecbx0900.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknap
-pen/ec/ecrm1200.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jkn
-appen/ec/ecbx1440.600pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfo
-nts/cm/cmbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm
-/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5
-.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></
-usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/sha
-re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/share/texli
-ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf
--dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/
-fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/t
-ype1/public/amsfonts/cm/cmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
-blic/amsfonts/symbols/msbm10.pfb>
-Output written on article.pdf (6 pages, 1202440 bytes).
+x1200.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/e
+ctt0800.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec
+/ecrm0800.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/
+ec/ecrm1000.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknappe
+n/ec/ectt0900.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jknap
+pen/ec/ecrm0900.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/jkn
+appen/ec/ecbx0900.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour/j
+knappen/ec/ecrm1200.600pk> </home/fabien/.texlive2021/texmf-var/fonts/pk/ljfour
+/jknappen/ec/ecbx1440.600pk></usr/share/texlive/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfont
+s/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/c
+mmi5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pf
+b></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr
+/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/share/t
+exlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-d
+ist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fon
+ts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type
+1/public/amsfonts/cm/cmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1/publi
+c/amsfonts/symbols/msbm10.pfb>
+Output written on article.pdf (5 pages, 1414944 bytes).
 PDF statistics:
- 641 PDF objects out of 1000 (max. 8388607)
- 231 compressed objects within 3 object streams
- 50 named destinations out of 1000 (max. 500000)
- 131 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 682 PDF objects out of 1000 (max. 8388607)
+ 230 compressed objects within 3 object streams
+ 44 named destinations out of 1000 (max. 500000)
+ 107 words of extra memory for PDF output out of 10000 (max. 10000000)
 

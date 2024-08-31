@@ -27,39 +27,31 @@ class Displays:
         self.model = model.eval()
     
     # specific process
-    def generate_sequence(self, input_seq, total_length, input_window=None, gen_window=None):
-        N, M, _ = input_seq.shape
+    def generate_sequence(self, complete_sequence, start_length=64, window=None, gen_window=None):
+        L, _, _ = complete_sequence.shape
+        input_seq = complete_sequence[:start_length]
         self.sequence_generator.reset(input_seq)
-        is_progressive = input_window is not None and gen_window is not None
-        while len(self.sequence_generator.sequence) < total_length:
+        is_progressive = window is not None and gen_window is not None
+        while start_length < L :
+            input_tensor = torch.from_numpy(self.sequence_generator.sequence).long()
             if is_progressive:
-                input_tensor = torch.from_numpy(self.sequence_generator.sequence[-input_window:]).long()
-                gen_length = min(gen_window, total_length - len(self.sequence_generator.sequence))
-            else:
-                input_tensor = torch.from_numpy(self.sequence_generator.sequence).long()
-                gen_length = total_length - len(self.sequence_generator.sequence)
+                update_length = min(window, L - len(self.sequence_generator.sequence) - gen_window)
+                update_token_id = complete_sequence[start_length:start_length+update_length][:,1,1]
+                new_sequence = self.sequence_generator.update_sequence(update_token_id)
+                gen_length = min(gen_window, L - len(self.sequence_generator.sequence))
+            else: gen_length = L - len(self.sequence_generator.sequence)
             with torch.no_grad():
                 for _ in range(gen_length):
                     output = self.model(input_tensor.unsqueeze(0))
                     _, predicted = output.max(1)
                     next_token_id = predicted.squeeze().cpu().numpy().item()
-                    self._update_sequence(next_token_id)
-                    if is_progressive:
-                        input_tensor = torch.from_numpy(self.sequence_generator.sequence[-input_window:]).long()
-                    else:
-                        input_tensor = torch.from_numpy(self.sequence_generator.sequence).long()
-        return self.sequence_generator.sequence[:total_length]
+                    new_sequence = self.sequence_generator.update_sequence(next_token_id)
+                    input_tensor = torch.from_numpy(new_sequence).long()
+            start_length = len(self.sequence_generator.sequence)
+        return self.sequence_generator.sequence
 
-    def _update_sequence(self, next_token_id):
-        next_matrix, self.sequence_generator.clock = self.sequence_generator._process_token(
-            next_token_id, 
-            self.sequence_generator.sequence, 
-            self.sequence_generator.clock
-        )
-        self.sequence_generator.sequence = np.concatenate([self.sequence_generator.sequence, next_matrix])
-
-    def process_sequence(self, input_seq, total_length, input_window=None, gen_window=None):
-        final_sequence = self.generate_sequence(input_seq, total_length, input_window, gen_window)
+    def process_sequence(self, complete_sequence, start_length=64, window=None, gen_window=None):
+        final_sequence = self.generate_sequence(complete_sequence, start_length, window, gen_window)
         tokens_arr_obj = self.tokenizer.convert_ids_to_tokens(final_sequence[:,1,1])
         images = self.reconstruct_imgs(tokens_arr_obj)
         text_blocks = self.reconstruct_text(tokens_arr_obj)
@@ -144,11 +136,6 @@ class Displays:
                      fontsize=10)
         
         plt.tight_layout()
-        #plt.savefig('image.svg'); plt.savefig('image.png', dpi=300)
+        plt.savefig('image.svg'); plt.savefig('image.png', dpi=300)
         plt.show()
-
-    def process_and_display(self, input_seq, total_length, input_window=None, gen_window=None):
-        images, text_blocks = self.process_sequence(input_seq, total_length, input_window, gen_window)
-        self.show(images, text_blocks)
-        return images, text_blocks
 
