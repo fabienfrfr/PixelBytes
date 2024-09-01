@@ -110,7 +110,7 @@ During sequence generation, the \texttt{\_process\_token} function manages trans
 \section{Training and Evaluation}
 
 \subsection{Model Architectures}
-We tested three different model types: Recurrent Neural Network (RNN) using bidirectional Long Short-Term Memory (LSTM) units \cite{hochreiter1997long}, Transformer \cite{vaswani2017attention}, and Mamba, which is based on the State Space Model (SSM) \cite{gu2022efficiently}. Each model was adapted to work with our dataset of pixel data and bytecode sequences. We trained the models on Kaggle using dual T4 GPUs. We used a batch size of 32, sequence length of 256, learning rate of 0.001, and trained for 200 epochs, checking the model's performance every 5 epochs. The trained models are available at \url{https://huggingface.co/ffurfaro/PixelBytes-Pokemon}.
+We evaluated three compact model architectures, each with fewer than 100,000 parameters: a Recurrent Neural Network (RNN) using bidirectional Long Short-Term Memory (LSTM) units \cite{hochreiter1997long}, a Transformer \cite{vaswani2017attention}, and Mamba, based on the State Space Model (SSM) \cite{gu2022efficiently}. These models were adapted to process our dataset of pixel data and bytecode sequences. Training was conducted on Kaggle using dual T4 GPUs, with a batch size of 32, sequence length of 256, stride size of 32, and learning rate of 0.001. We trained for 200 epochs, evaluating performance every 5 epochs. The resulting models are available at \url{https://huggingface.co/ffurfaro/PixelBytes-Pokemon}. Additionally, we developed a more specialized model for generation tasks, which is not presented in this paper.
 
 \begin{figure}[htbp]
 \centering
@@ -121,7 +121,7 @@ We tested three different model types: Recurrent Neural Network (RNN) using bidi
 
 Figure \ref{fig:training_results} shows the training and validation metrics for our three model types over 200 epochs. The State Space Models (SSM) achieved the best scores for loss and accuracy. However, the widening gap between their training and validation curves suggests they may be overfitting, meaning they learned the training data well but struggled to generalize to new examples.
 
-In contrast, the LSTMs (referred to as RNNs in our analysis) demonstrated more balanced performance. The closer alignment of their training and validation curves indicates they may generalize better to unseen data. The Transformer model had the lowest performance among the three. This could be due to the absence of positional encoding, which is important for Transformers in sequence tasks.
+In contrast, the LSTMs (referred to as RNNs in our analysis) demonstrated more balanced performance. The closer alignment of their training and validation curves indicates they may generalize better to unseen data. The Transformer model had the lowest performance among the three. This could be due to the absence of positional encoding trick, which is important for Transformers in sequence tasks.
 
 Overall, these results highlight the strengths and weaknesses of each model type. While SSMs showed strong training performance, their tendency to overfit suggests that additional regularization techniques might be needed. The stable performance of RNNs indicates their suitability for our task, as they balance well between fitting the training data and generalizing to new data. The Transformer's performance suggests it may require further adjustments to improve its effectiveness for this task.
 

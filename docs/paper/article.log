@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.14)  31 AUG 2024 18:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.3.14)  1 SEP 2024 08:40
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -475,9 +475,8 @@ Package pdftex.def Info: training_results.png  used on input line 117.
  has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.126 O
-       verall, these results highlight the strengths and weaknesses of each ...
- <./training_results.png>]
+l.125 
+       <./training_results.png>]
 
 LaTeX Warning: Citation `yan2024multimodal' on page 4 undefined on input line 1
 66.
@@ -486,12 +485,12 @@ LaTeX Warning: Citation `yan2024multimodal' on page 4 undefined on input line 1
 LaTeX Warning: Citation `schuster1997bidirectional' on page 4 undefined on inpu
 t line 168.
 
-(./article.bbl [4pdfTeX warning (ext4): destination with the same identifier (n
-ame{table.1}) has been already used, duplicate ignored
+[4pdfTeX warning (ext4): destination with the same identifier (name{table.1}) h
+as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1 \begin{thebibliography}{10}
-                               ]) [5] (./article.aux)
+l.173 
+      ] (./article.bbl) [5] (./article.aux)
 
 LaTeX Warning: There were undefined references.
 
@@ -531,10 +530,10 @@ ist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fon
 ts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type
 1/public/amsfonts/cm/cmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1/publi
 c/amsfonts/symbols/msbm10.pfb>
-Output written on article.pdf (5 pages, 1414944 bytes).
+Output written on article.pdf (5 pages, 1415055 bytes).
 PDF statistics:
- 682 PDF objects out of 1000 (max. 8388607)
- 230 compressed objects within 3 object streams
+ 681 PDF objects out of 1000 (max. 8388607)
+ 229 compressed objects within 3 object streams
  44 named destinations out of 1000 (max. 500000)
  107 words of extra memory for PDF output out of 10000 (max. 10000000)
 

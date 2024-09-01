@@ -24,6 +24,8 @@ if __name__ == '__main__' :
     displayer = Displays(tokenizer)
     #model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_conv_81_dim_32_state_2_layer_last")
     model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
+    total_parameters = pytorch_total_params = sum(p.numel() for p in model.parameters())
+    print(f"Nombre de paramètres : {total_parameters:,}")
     displayer.reset(model)
     #model = bMamba.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="ssm_bi_pxby_conv_81_dim_64_state_2_layer_last")
     complete_seq = np.array(hf_dataset["train"]['pixelbyte'][0])
