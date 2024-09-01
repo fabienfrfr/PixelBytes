@@ -28,9 +28,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="pt"
      showgrid="true"
-     inkscape:zoom="0.6428411"
-     inkscape:cx="291.67395"
-     inkscape:cy="92.557866"
+     inkscape:zoom="0.32142055"
+     inkscape:cx="1280.2542"
+     inkscape:cy="169.55979"
      inkscape:window-width="1850"
      inkscape:window-height="1016"
      inkscape:window-x="0"
@@ -838,7 +838,7 @@
      x="168.35443"
      y="51.458359"
      clip-path="url(#clipPath20051)"
-     transform="translate(-67.500002,-29.999998)" />
+     transform="translate(-67.500002,-14.999998)" />
   <text
      xml:space="preserve"
      style="font-size:9.99998px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:0.75"
@@ -868,7 +868,7 @@
      transform="translate(-29.999996,-30.000027)" />
   <g
      id="g46026"
-     transform="translate(112.50001,-29.999992)">
+     transform="translate(112.50001,-14.999992)">
     <rect
        style="fill:#666666;fill-opacity:1;stroke:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round"
        id="rect18537-4-7-1"
@@ -1044,8 +1044,8 @@
        y="310.67889"
        id="tspan26987-3-9-7-1-9">Unified embedding transformation</tspan></text>
   <path
-     style="fill:none;stroke:#000000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#TriangleOutL);stroke-miterlimit:4;stroke-dasharray:none"
-     d="m 198.35443,96.458355 h 52.5"
+     style="fill:none;stroke:#000000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutL)"
+     d="m 198.35443,111.45836 h 52.5"
      id="path62670" />
   <path
      style="fill:none;stroke:#000000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutL-56)"
@@ -1058,7 +1058,7 @@
      sodipodi:nodetypes="cc" />
   <path
      style="fill:none;stroke:#000000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutL-4)"
-     d="m 423.35444,96.458352 h 52.5"
+     d="m 423.35444,111.45835 h 52.5"
      id="path62670-1" />
   <text
      xml:space="preserve"
@@ -1078,7 +1078,7 @@
      xml:space="preserve"
      style="font-size:13px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:0.33218;stroke-linecap:butt;stroke-linejoin:round"
      x="310.28348"
-     y="40.324009"
+     y="55.324009"
      id="text7563-2-1-7-1-9-8"
      inkscape:export-filename="/home/fabien/Documents/GIT/PixelBytes/docs/paper/example_generation.png"
      inkscape:export-xdpi="384"
@@ -1086,13 +1086,13 @@
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.33218"
        x="310.28348"
-       y="40.324009"
+       y="55.324009"
        id="tspan26987-3-9-7-1-0-8">NES Palette</tspan></text>
   <text
      xml:space="preserve"
      style="font-size:13px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:0.33218;stroke-linecap:butt;stroke-linejoin:round"
      x="194.91264"
-     y="131.13339"
+     y="146.13339"
      id="text7563-2-1-7-1-9-8-5"
      inkscape:export-filename="/home/fabien/Documents/GIT/PixelBytes/docs/paper/example_generation.png"
      inkscape:export-xdpi="384"
@@ -1100,13 +1100,13 @@
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.33218"
        x="194.91264"
-       y="131.13339"
+       y="146.13339"
        id="tspan26987-3-9-7-1-0-8-0">Quantization</tspan></text>
   <text
      xml:space="preserve"
      style="font-size:13px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:0.33218;stroke-linecap:butt;stroke-linejoin:round"
      x="417.9169"
-     y="132.24741"
+     y="147.24741"
      id="text7563-2-1-7-1-9-8-5-9"
      inkscape:export-filename="/home/fabien/Documents/GIT/PixelBytes/docs/paper/example_generation.png"
      inkscape:export-xdpi="384"
@@ -1114,7 +1114,7 @@
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.33218"
        x="417.9169"
-       y="132.24741"
+       y="147.24741"
        id="tspan26987-3-9-7-1-0-8-0-6">Border Token</tspan></text>
   <text
      xml:space="preserve"
