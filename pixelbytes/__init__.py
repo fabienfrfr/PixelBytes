@@ -7,3 +7,4 @@ from .tokenizer import *
 from .train import *
 from .eval import *
 from .results import *
+from .config import *

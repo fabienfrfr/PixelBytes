@@ -81,5 +81,3 @@ class SequenceGenerator:
                                        [prev_token_id, token_id, 0],
                                        [0,0,0]])
         return matrix[None], sequence_clock
-
-

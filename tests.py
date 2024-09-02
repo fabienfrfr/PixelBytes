@@ -6,13 +6,14 @@ TESTS FILE
 """
 
 from pixelbytes import *
-from datasets import load_dataset
 
 ### basic test
 if __name__ == '__main__' :
-
+    print("All dev test OK ! you can do archaeology now! but some code doesn't work here, because it's not updated ;)")
+    """
     #quit()
     # common part
+    from datasets import load_dataset
     hf_dataset = load_dataset("ffurfaro/PixelBytes-Pokemon")
     tokenizer = PixelBytesTokenizer()
     # reconstruct bulbizarre
@@ -37,6 +38,7 @@ if __name__ == '__main__' :
     #images, text = displayer.process_sequence(complete_seq, window=64, gen_window=4)
     images, text = displayer.process_sequence(complete_seq, window=32, gen_window=8)
     displayer.show(images, text)
+    """
     """
     # plot
     train_results_path = 'models/train_results'
@@ -75,7 +77,7 @@ if __name__ == '__main__' :
         generated_sequence = generator.update_sequence(end_sequence[:,1,1])
         print(np.mean(reference_sequence - generated_sequence)) ## all zero with 50 lenght ! prefer 64 to be large
     """
-    '''
+    """
     tokenizer = PixelBytesTokenizer()
     model = SimpleRNNModel.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
     #model = bMamba.from_pretrained("ffurfaro/PixelBytes-Pokemon", subfolder="rnn_bi_pxby_81_dim_64_state_2_layer_last")
@@ -90,6 +92,7 @@ if __name__ == '__main__' :
     #for matrix in generator.generate_stream(start_sequence, max_length=25, temperature=0.7):
     #    print(matrix)
     # display generated sequence
+    """
     """
     # generate complete sequence
     first_sequence = np.array(hf_dataset["train"]['pixelbyte'][0])[:,1,1]
@@ -171,20 +174,3 @@ if __name__ == '__main__' :
     img = reconstruct_imgs(tokens[:np.random.randint(50,len(tokens)//2)])[0]["image"]
     plt.imshow(img);plt.show()
     """
-    
-    
-    
-    
-    
-    
-    '''
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    

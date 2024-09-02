@@ -6,6 +6,21 @@ PixelBytes
 
 PixelByte is an innovative Python project designed to simultaneously generate text and images pixel by pixel in the form of sequences. The goal is to explore a unified embedding that allows for coherent multimodal generation.
 
+
+Installation
+------------
+
+To get started with this project, you need to have Python 3.8 or higher installed. It is recommended to use a virtual environment.
+
+
+Install dependencies using PyPI:
+
+   .. code-block:: bash
+
+      pip install git+https://github.com/fabienfrfr/PixelBytes.git@main
+
+
+
 Context and Proposed Architecture
 ----------------------------------
 
@@ -31,8 +46,8 @@ Objectives
 
 The main objectives of this project are:
 
-1. Implement a multimodal sequence generation model (PixelByte) using the Mamba architecture.
-2. Test the model on tasks beyond traditional multimodal processing, including image generation and image captioning.
+1. Implement a multimodal sequence generation model (PixelByte).
+2. Test the model on tasks beyond multimodal processing, including image and text generation.
 3. Explore the model's ability to seamlessly manage transitions between text and image modalities.
 
 Project Resources
@@ -71,23 +86,77 @@ Image Captioning
 
 In the context of image generation, we assign "image tokens" and "text tokens" to test scenarios where input modalities are mixed, exploring a more complex approach to multimodal processing.
 
-Getting Started
----------------
 
-[Add your getting started instructions here]
+Available Tasks
+~~~~~~~~~~~~~~~
+
+- **Build the dataset**:
+
+  .. code-block:: bash
+
+     python -m your_package.main build --path /path/to/dataset --palette /path/to/palette.py
+
+- **Train the model**:
+
+  .. code-block:: bash
+
+     python -m your_package.main train --model resnet50 --learning-rate 0.0001 --batch-size 64 --epochs 20
+
+- **Evaluate the model**:
+
+  .. code-block:: bash
+
+     python -m your_package.main evaluate --metrics accuracy precision recall
+
+- **Generate output**:
+
+  .. code-block:: bash
+
+     python -m your_package.main generate --format png
+
+If no task is specified, the script will display help information. You can see docs for manual using (in French) in the `docs folder <docs/>`_.
+
+Tasks
+-----
+
+Build Dataset
+~~~~~~~~~~~~~
+
+This task builds a dataset from the specified path and optionally uses a custom palette.
+
+Train Model
+~~~~~~~~~~~
+
+This task trains the specified model with the provided hyperparameters, including learning rate, batch size, and number of epochs.
+
+Evaluate Model
+~~~~~~~~~~~~~~
+
+This task evaluates the model using the specified metrics.
+
+Generate Output
+~~~~~~~~~~~~~~~
+
+This task generates and displays results in the specified format (e.g., SVG, PNG, JPG).
 
 
 Contributing
 ------------
 
-(Add guidelines for contributing to the project)
+Contributions are welcome! Please feel free to submit a pull request or open an issue for any suggestions or improvements.
+
+1. Fork the repository.
+2. Create your feature branch (``git checkout -b feature/AmazingFeature``).
+3. Commit your changes (``git commit -m 'Add some AmazingFeature'``).
+4. Push to the branch (``git push origin feature/AmazingFeature``).
+5. Open a pull request.
 
 License
 -------
 
-MIT Licence
+This project is licensed under the MIT License - see the `LICENSE <LICENSE>`_ file for details.
 
 Contact
 -------
 
-(Provide contact information or links to project maintainers)
+fabien.furfaro_at_gmail.com
