@@ -15,7 +15,7 @@ To get started with this project, you need to have Python 3.8 or higher installe
 
 Install dependencies using PyPI:
 
-   .. code-block:: bash
+.. code-block:: bash
 
       pip install git+https://github.com/fabienfrfr/PixelBytes.git@main
 
@@ -92,25 +92,25 @@ Available Tasks
 
 - **Build the dataset**:
 
-  .. code-block:: bash
+.. code-block:: bash
 
      python -m your_package.main build --path /path/to/dataset --palette /path/to/palette.py
 
 - **Train the model**:
 
-  .. code-block:: bash
+.. code-block:: bash
 
      python -m your_package.main train --model resnet50 --learning-rate 0.0001 --batch-size 64 --epochs 20
 
 - **Evaluate the model**:
 
-  .. code-block:: bash
+.. code-block:: bash
 
      python -m your_package.main evaluate --metrics accuracy precision recall
 
 - **Generate output**:
 
-  .. code-block:: bash
+.. code-block:: bash
 
      python -m your_package.main generate --format png
 
