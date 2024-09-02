@@ -13,7 +13,7 @@ from dataclasses import dataclass
 try :
     from mamba_ssm.modules.mamba_simple import Mamba
 except :
-    print('No mamba_ssm CUDA modules installed...')
+    print('[INFO] Official mamba_ssm CUDA modules not found. Falling back to an unofficial implementation. Performance may be affected.')
     import mambapy.mamba as mambapy
     def Mamba(d_model, d_state, d_conv, expand) :
         config = mambapy.MambaConfig(d_model, d_state, d_conv, expand)

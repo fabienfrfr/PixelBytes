@@ -4,6 +4,9 @@
 @author: fabienfr
 """
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
+
 import os
 import pandas as pd
 import matplotlib.pyplot as plt

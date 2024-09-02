@@ -18,12 +18,12 @@ from .model import *
 
 @dataclass
 class TrainConfig:
-    hf_token : str
-    repo_name : str
     model : PreTrainedModel
     model_config : PretrainedConfig
     train_dataset : DataLoader
     test_dataset : DataLoader
+    hf_token : str = None
+    repo_name : str = None
     batch_size : int = 32
     learning_rate : int = 0.001
     num_epochs: int = 10
@@ -63,7 +63,7 @@ class Trainer:
         self.repo_name = config.dataset_name if (not(self.hf_token is None) and config.repo_name is None) else config.repo_name
 
     def train_and_evaluate(self):
-        if self.hf_token is None : print('No HF token given..')
+        if self.hf_token is None : print('No HF token given, only local save model')
         best_test_loss = float('inf')
         test_metrics = self._evaluate(self.test_loader)
         self.results.append({'epoch': 0, 'train_eval_loss' : test_metrics['loss'], 'train_accuracy': test_metrics['accuracy'], 'train_f1': test_metrics['f1'],

@@ -138,4 +138,5 @@ class Displays:
         plt.tight_layout()
         plt.savefig('image.svg'); plt.savefig('image.png', dpi=300)
         plt.show()
+        plt.close()
 

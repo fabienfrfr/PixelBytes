@@ -4,6 +4,9 @@
 @author: fabienfrfr
 """
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
+
 from .dataset import image_pixelization
 
 from datasets import load_dataset, Dataset
@@ -78,16 +81,16 @@ def download_pkmn_miniature(url_pkmn):
         print(f"Download error")
         return None
 
+def arraybytes_to_png(arr, number):
+    pil_img = Image.fromarray(arr.astype('uint8'))
+    img_file_path = f"data/{number}.png" #img_byte_arr = io.BytesIO()
+    pil_img.save(img_file_path, format='PNG') #pil_img.save(img_byte_arr, format='PNG')
+    return img_file_path # img_byte_arr.getvalue()
+
 def create_pkmn_dataset(pkmn_dict, image_dir="data"):
     os.makedirs(image_dir, exist_ok=True)
     # Init pipeline format (if you caption : not used here // old)
     #captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
-    
-    def arraybytes_to_png(arr, number):
-        pil_img = Image.fromarray(arr.astype('uint8'))
-        img_file_path = f"data/{number}.png" #img_byte_arr = io.BytesIO()
-        pil_img.save(img_file_path, format='PNG') #pil_img.save(img_byte_arr, format='PNG')
-        return img_file_path # img_byte_arr.getvalue()
     # Generate image captionning
     #names = []
     captions = []

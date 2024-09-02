@@ -48,7 +48,7 @@ class PixelBytesTokenizer(PreTrainedTokenizer):
         return len(self.vocab)
 
     def get_vocab(self) -> Dict[str, int]:
-        return {str(k): v for k, v in self.vocab.items()}
+        return {k: v for k, v in self.vocab.items()}
 
     def _tokenize(self, text: str) -> List[str]:
         return list(text)

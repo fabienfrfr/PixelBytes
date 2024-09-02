@@ -5,6 +5,7 @@
 """
 
 from .config import DEFAULT_PALETTE
+from .tokenizer import PixelBytesTokenizer
 
 import getpass
 from huggingface_hub import login
@@ -19,7 +20,7 @@ from tqdm import tqdm
 
 ##### dataset
 class PxByDataset(Dataset):
-    def __init__(self, pxby_columns, seq_length=256, stride=64):
+    def __init__(self, pxby_columns, seq_length=128, stride=32):
         self.data = [torch.tensor(sequence, dtype=torch.long) for sequence in pxby_columns]
         self.seq_length = seq_length
         self.stride = stride
@@ -74,7 +75,7 @@ def input_seq_construct(arr, dim=3, none_val=0, pix_sep=1, modal_sep=2):
     # flatten
     return result.reshape(-1, dim, dim)
 
-def add_pixelbyte_columns(image_caption_dataset, tokenizer=PixelBytesTokenizer(), palette=DEFAULT_PALETTE):
+def add_pixelbyte_columns(image_caption_dataset, is_pixel_style=False, tokenizer=PixelBytesTokenizer(), palette=DEFAULT_PALETTE):
     vocab = tokenizer.get_vocab()
     # vocabulary
     n = vocab[b'\x00']
@@ -84,20 +85,21 @@ def add_pixelbyte_columns(image_caption_dataset, tokenizer=PixelBytesTokenizer()
     vectorized_map = np.vectorize(lambda x,y,z: vocab.get((int(x), int(y), int(z)), None))
     # add pixelbytes columns
     pixelbytes = []
-    for row in tqdm(image_caption_dataset['train'], desc="Construct pixelbytes columns"):
+    for row in tqdm(image_caption_dataset, desc="Construct pixelbytes columns"):
         # get info
         Image = np.array(row['image'])
         Caption = row['caption'].encode('utf-8')
-        Shape = str(Image.shape[:-1]).encode('utf-8')
-        ### Shape part
-        Shape = np.array([vocab[bytes([x])] for x in Shape])[None]
-        Shape = input_seq_construct(Shape, dim=3, none_val=n, pix_sep=p, modal_sep=m)
         ### Image part
-        Image = image_paletization(Image, palette)
+        if is_pixel_style : Image = image_paletization(Image, palette) # already pixelized style
+        else : Image = image_pixelization(Image, palette) # Pixel reduce & palettize 
         # Separate RGB channel & Quantize
         Image = vectorized_map(Image[..., 0], Image[..., 1], Image[..., 2])
         # create sequence image
         Image = input_seq_construct(Image, dim=3, none_val=n, pix_sep=p, modal_sep=m)
+        ### Shape part
+        Shape = str(Image.shape[:-1]).encode('utf-8')
+        Shape = np.array([vocab[bytes([x])] for x in Shape])[None]
+        Shape = input_seq_construct(Shape, dim=3, none_val=n, pix_sep=p, modal_sep=m)
         ### Caption part
         Caption = np.array([vocab[bytes([x])] for x in Caption])[None]
         Caption = input_seq_construct(Caption, dim=3, none_val=n, pix_sep=p, modal_sep=m)
@@ -105,7 +107,9 @@ def add_pixelbyte_columns(image_caption_dataset, tokenizer=PixelBytesTokenizer()
         pixelbyte = np.concatenate((Shape, Image, Caption), axis=0)
         pixelbytes.append(pixelbyte.tolist())
     # return new column
-    return image_caption_dataset['train'].add_column("pixelbyte", pixelbytes)
+    if "pixelbyte" in image_caption_dataset.column_names : 
+        image_caption_dataset = image_caption_dataset.remove_columns("pixelbyte")
+    return image_caption_dataset.add_column("pixelbyte", pixelbytes)
 
 ##### Image function
 def image_autocrop(img) :
@@ -169,7 +173,7 @@ def image_paletization(img, palette) :
         return palette_rgb[np.argmin(distances)]
     return np.apply_along_axis(closest_color, 2 , img, palette)
     
-def image_pixelization(img, palette, max_size=25, edging=False):
+def image_pixelization(img, palette, max_size=25, edging=True):
     # Parameter
     h, w = img.shape[:2]
     num_colors = len(palette)
@@ -180,7 +184,7 @@ def image_pixelization(img, palette, max_size=25, edging=False):
     if img.shape[2] == 4:
         img = alpha_to_blank(img)
     # edging (experimental for big img)
-    img = image_edging_enhancer(img) if edging else img
+    img = image_edging_enhancer(img) if edging and min(h,w)>200 else img
     # First resizing (a=2)
     img = resize_image(img, h, w, m=max_size, a=2)
     ## Quantize image

@@ -10,6 +10,9 @@ from pixelbytes import *
 ### basic test
 if __name__ == '__main__' :
     print("All dev test OK ! you can do archaeology now! but some code doesn't work here, because it's not updated ;)")
+    # python3 -m pixelbytes.main build
+    # python3 -m pixelbytes.main train --seq_length 512 --strides 256
+    # generate_arg('ffurfaro/PixelBytes-Pokemon','rnn_bi_pxby_81_dim_64_state_2_layer_last','svg') #dummy !
     """
     #quit()
     # common part
