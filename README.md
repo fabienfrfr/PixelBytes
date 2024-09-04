@@ -123,24 +123,36 @@ Tasks
 -----
 
 Build Dataset
-~~~~~~~~~~~~~
+-----
 
 This task builds a dataset from the specified path and optionally uses a custom palette.
 
 Train Model
-~~~~~~~~~~~
+-----
 
 This task trains the specified model with the provided hyperparameters, including learning rate, batch size, and number of epochs.
 
 Evaluate Model
-~~~~~~~~~~~~~~
+-----
 
 This task evaluates the model using the specified metrics.
 
 Generate Output
-~~~~~~~~~~~~~~~
+-----
 
 This task generates and displays results in the specified format (e.g., SVG, PNG, JPG).
+
+
+Cloud Computing
+-----
+
+.. code-block:: bash
+
+   docker build -t votre_nom_utilisateur/votre_image .
+   
+   docker push votre_nom_utilisateur/votre_image
+
+Use your favorite Cloud (OVH, Azure, etc.)
 
 
 Contributing
