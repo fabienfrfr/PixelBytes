@@ -88,7 +88,7 @@ In the context of image generation, we assign "image tokens" and "text tokens" t
 
 
 Available Tasks
-~~~~~~~~~~~~~~~
+----------------
 
 - **Build the dataset**:
 
