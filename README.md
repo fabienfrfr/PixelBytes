@@ -17,7 +17,7 @@ Install dependencies using PyPI:
 
 .. code-block:: bash
 
-pip install git+https://github.com/fabienfrfr/PixelBytes.git@main
+   pip install git+https://github.com/fabienfrfr/PixelBytes.git@main
 
 
 
@@ -71,14 +71,14 @@ If you use this package in your research or project, please cite it as follows:
 
 .. code-block:: bibtex
 
-@misc{pixelbytes,
-author = {Fabien Furfaro},
-title = {PixelBytes: Catching Insights in Unified Multimodal Sequences},
-year = {2024},
-publisher = {GitHub},
-journal = {GitHub repository},
-url = {https://github.com/fabienfrfr/PixelBytes}
-}
+   @misc{pixelbytes,
+   author = {Fabien Furfaro},
+   title = {PixelBytes: Catching Insights in Unified Multimodal Sequences},
+   year = {2024},
+   publisher = {GitHub},
+   journal = {GitHub repository},
+   url = {https://github.com/fabienfrfr/PixelBytes}
+   }
 
 
 Image Captioning
@@ -94,27 +94,27 @@ Available Tasks
 
 .. code-block:: bash
 
-python -m your_package.main build --path /path/to/dataset --palette /path/to/palette.py
+   python -m your_package.main build --path /path/to/dataset --palette /path/to/palette.py
 
 - **Train the model**:
 
 .. code-block:: bash
 
-python -m your_package.main train --model resnet50 --learning-rate 0.0001 --batch-size 64 --epochs 20
+   python -m your_package.main train --model rnn --learning-rate 0.0001 --batch-size 64 --epochs 20
 
 
 - **Evaluate the model**:
 
 .. code-block:: bash
 
-python -m your_package.main evaluate --metrics accuracy precision recall
+   python -m your_package.main evaluate --metrics accuracy precision recall
 
 
 - **Generate output**:
 
 .. code-block:: bash
 
-python -m your_package.main generate --format png
+   python -m your_package.main generate --format png
 
 
 If no task is specified, the script will display help information. You can see docs for manual using (in French) in the `docs folder <docs/>`_.
@@ -157,7 +157,7 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 License
 -------
 
-This project is licensed under the MIT License - see the `LICENSE <LICENSE>`_ file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 Contact
 -------
