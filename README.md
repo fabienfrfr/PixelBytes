@@ -152,7 +152,7 @@ Prerequisites
 -------------
 
 Linux Setup
-^^^^^^^^^^^
+-----------
 
 Ensure you have the necessary permissions to use Docker:
 
