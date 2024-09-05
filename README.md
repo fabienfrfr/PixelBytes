@@ -144,15 +144,89 @@ This task generates and displays results in the specified format (e.g., SVG, PNG
 
 
 Cloud Computing
------
+===============
+
+This parts provides instructions for building and deploying Docker images to various cloud platforms.
+
+Prerequisites
+-------------
+
+Linux Setup
+^^^^^^^^^^^
+
+Ensure you have the necessary permissions to use Docker:
 
 .. code-block:: bash
 
-   docker build -t votre_nom_utilisateur/votre_image .
-   
-   docker push votre_nom_utilisateur/votre_image
+   sudo usermod -aG docker $USER
+   newgrp docker
 
-Use your favorite Cloud (OVH, Azure, etc.)
+Docker Commands
+---------------
+
+Build your Docker image:
+
+.. code-block:: bash
+
+   docker build -t $USER/img_name .
+
+Push your image to Docker Hub:
+
+.. code-block:: bash
+
+   docker push $USER/img_name
+
+Running Locally
+---------------
+
+To run your container with GPU support:
+
+.. code-block:: bash
+
+   docker run --gpus all -it $USER/img_name
+ 
+
+Cloud Deployment
+----------------
+
+Choose your preferred cloud provider (e.g., OVH, Azure, AWS).
+
+Example Commands
+----------------
+
+**OVH:**
+
+.. code-block:: bash
+
+   # Assuming you have a VM set up on OVH
+   ssh user@your-ovh-vm
+   docker pull $USER/img_name
+   docker run -d -p 80:80 $USER/img_name
+
+**Azure:**
+
+.. code-block:: bash
+
+   az login
+   az group create --name myResourceGroup --location eastus
+   az container create --resource-group myResourceGroup --name mycontainer --image $USER/img_name --dns-name-label mydns --ports 80
+
+**AWS:**
+
+.. code-block:: bash
+
+   aws configure
+   aws ecs create-cluster --cluster-name mycluster
+   aws ecs run-task --cluster mycluster --task-definition mytask:1
+
+**Google Cloud:**
+
+.. code-block:: bash
+
+   gcloud auth login
+   gcloud container clusters create mycluster --zone us-central1-a
+   kubectl create deployment myapp --image=$USER/img_name
+   kubectl expose deployment myapp --type=LoadBalancer --port 80
 
 
 Contributing
