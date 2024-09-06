@@ -32,7 +32,7 @@ DEFAULT_PALETTE = [(0x00, 0x00, 0x00), (0xfc, 0xfc, 0xfc), (0xf8, 0xf8, 0xf8), (
                     (0x00, 0x58, 0x00), (0x00, 0xfc, 0xfc), (0x00, 0xe8, 0xd8), (0x00, 0x88, 0x88),
                     (0x00, 0x40, 0x58), (0xf8, 0xd8, 0xf8), (0x78, 0x78, 0x78)]
 ## Action-space (Control & Audio)
-DEFAULT_ACTION_STATE = np.linspace(-1, 1, 11).tolist()
+DEFAULT_ACTION_STATE = np.linspace(-1, 1, 41).tolist()
 
 ##### Tokenizer
 class ActionPixelBytesTokenizer(PreTrainedTokenizer):
@@ -93,8 +93,8 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         return frames_array + self.bytes_size # Tips (pass all bytes ids)
 
     def process_action_state(self, action_state):
-        # normalization (T,2) 0 : Action; 1 : State (Dataset BangBang control for State = 0 : see GymSetpoint
-        normalized_state = action_state / np.linalg.norm(action_state, axis=1, keepdims=True)
+        # normalization (T,2) 0 : Action; 1 : State (Dataset BangBang control for State = 0 : see GymSetpoint or Pokemon digital_signal/sound)
+        normalized_state = np.interp(action_state, (action_state.min(axis=0), action_state.max(axis=0)), (-1, 1))
         indices = cdist(normalized_state, DEFAULT_ACTION_STATE).argmin(axis=1)
         return indices[:, None, None] + self.bytes_size + self.palet_size
 
