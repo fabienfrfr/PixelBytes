@@ -13,49 +13,6 @@ if __name__ == '__main__' :
     # python3 -m pixelbytes.main build
     # python3 -m pixelbytes.main train --seq_length 512 --strides 256
     # generate_arg('ffurfaro/PixelBytes-Pokemon','rnn_bi_pxby_81_dim_64_state_2_layer_last','svg') #dummy !
-    
-    import numpy as np
-    from datasets import load_dataset
-    from skimage.color import rgb2lab
-    from scipy.spatial.distance import cdist
-
-    anim_dataset = load_dataset("ffurfaro/PixelBytes-PokemonSprites")
-    bulbi_back = img = anim_dataset['train']['image'][1]
-    default_palette_lab = rgb2lab(DEFAULT_PALETTE[None, :, :] / 255.0)[0]
-
-    n_frames = getattr(img, "n_frames", 1)
-    frames_array = np.empty((n_frames, img.height, img.width), dtype=np.uint8)
-    for i in range(n_frames):
-        img.seek(i)
-        frame_lab = rgb2lab(np.array(img.convert('RGB')) / 255.0)
-        frames_array[i] = cdist(frame_lab.reshape(-1, 3), default_palette_lab).argmin(axis=1).reshape(img.size[::-1])
-    
-    frames_array += 1 # 0 is null (not 0,0,0 in NES palette)
-    #frames_array = frames_array[:,1,:][:,None,:]
-    def create_context_and_center_arrays(frames_array):
-        n_frames, height, width = frames_array.shape
-        padded = np.pad(frames_array, ((1, 0), (1, 1), (1, 1)), mode='constant', constant_values=0)
-        context = np.zeros((n_frames, height, width, 6), dtype=frames_array.dtype)
-
-        context[:, :, :, 0] = padded[:-1, 1:-1, 1:-1]  # (t-1, i, j)
-        context[:, :, :, 1] = padded[:-1, 1:-1, 2:]    # (t-1, i, j+1)
-        context[:, :, :, 2] = padded[:-1, :-2, 1:-1]   # (t-1, i-1, j)
-        context[:, :, :, 3] = padded[1:, :-2, :-2]   # (t, i-1, j-1)
-        context[:, :, :, 4] = padded[1:, 1:-1, :-2]  # (t, i, j-1)
-        context[:, :, :, 5] = padded[1:, :-2, 1:-1]  # (t, i-1, j)
-
-        # Reshape (T*H*W, 6)
-        context_reshaped = context.reshape(-1, 6)
-        
-        # Extract center (T*H*W, 1)
-        center_values = frames_array.reshape(-1, 1)
-        
-        return context_reshaped, center_values, context
-
-    # PixelBytes new sequence
-    input_data, prediction, context = create_context_and_center_arrays(frames_array)
-    print(input_data, prediction)
-    
     """
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation

@@ -9,3 +9,4 @@ from .eval import *
 from .results import *
 from .config import *
 from .main import *
+from .action_pixelbytes import *
