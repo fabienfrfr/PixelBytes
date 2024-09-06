@@ -13,6 +13,30 @@ if __name__ == '__main__' :
     # python3 -m pixelbytes.main build
     # python3 -m pixelbytes.main train --seq_length 512 --strides 256
     # generate_arg('ffurfaro/PixelBytes-Pokemon','rnn_bi_pxby_81_dim_64_state_2_layer_last','svg') #dummy !
+    # https://www.perplexity.ai/search/je-cherche-une-base-de-donnee-6CeaKElsSyCN64Qzrmtuvw
+    import numpy as np
+    from pydub import AudioSegment
+    import matplotlib.pyplot as plt
+    from scipy import signal
+    
+    # Charger le fichier OGG
+    audio = AudioSegment.from_ogg("data/Cri_0001_HOME.ogg")
+    input_signal = np.array(audio.get_array_of_samples()).astype(float) / 32768.0  # Normalisation
+    
+    # Simuler la sortie du haut-parleur avec un filtre passe-bas
+    b, a = signal.butter(4, 5000, fs=audio.frame_rate, btype='low')  # Fréquence de coupure à 5000 Hz
+    speaker_output = signal.lfilter(b, a, input_signal)
+    
+    # Tracer les signaux
+    t = np.arange(len(input_signal)) / audio.frame_rate
+    plt.figure(figsize=(10, 4))
+    plt.plot(t, input_signal, label="Cri Pokémon original")
+    plt.plot(t, speaker_output, label="Sortie haut-parleur simulée")
+    plt.xlabel("Temps (s)")
+    plt.ylabel("Amplitude")
+    plt.title("Comparaison entre le cri original et la sortie simulée")
+    plt.legend()
+    plt.show()
     """
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
