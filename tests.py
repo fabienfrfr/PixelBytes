@@ -18,25 +18,59 @@ if __name__ == '__main__' :
     from pydub import AudioSegment
     import matplotlib.pyplot as plt
     from scipy import signal
+    import os
     
-    # Charger le fichier OGG
-    audio = AudioSegment.from_ogg("data/Cri_0001_HOME.ogg")
-    input_signal = np.array(audio.get_array_of_samples()).astype(float) / 32768.0  # Normalisation
+    def process_audio(input_file, output_file):
+        # Load and process audio
+        audio = AudioSegment.from_ogg(input_file)
+        original = np.array(audio.get_array_of_samples()).astype(float) / 32768.0
     
-    # Simuler la sortie du haut-parleur avec un filtre passe-bas
-    b, a = signal.butter(4, 5000, fs=audio.frame_rate, btype='low')  # Fréquence de coupure à 5000 Hz
-    speaker_output = signal.lfilter(b, a, input_signal)
+        # GameBoy parameters
+        gb_rate = 8192
+        low_freq, high_freq = 100, 3000
+        
+        # Signal processing
+        resampled = signal.resample(original, int(len(original) * gb_rate / audio.frame_rate))
+        b, a = signal.butter(4, [low_freq / (0.5 * gb_rate), high_freq / (0.5 * gb_rate)], btype='band')
+        processed = signal.lfilter(b, a, resampled)
+        processed = np.round(processed * 7) / 7  # 4-bit quantization
     
-    # Tracer les signaux
-    t = np.arange(len(input_signal)) / audio.frame_rate
-    plt.figure(figsize=(10, 4))
-    plt.plot(t, input_signal, label="Cri Pokémon original")
-    plt.plot(t, speaker_output, label="Sortie haut-parleur simulée")
-    plt.xlabel("Temps (s)")
-    plt.ylabel("Amplitude")
-    plt.title("Comparaison entre le cri original et la sortie simulée")
-    plt.legend()
-    plt.show()
+        # Save processed audio
+        AudioSegment(processed.astype(np.int16).tobytes(), frame_rate=gb_rate, sample_width=2, channels=1).export(output_file, format="wav")
+    
+        return original, processed, audio.frame_rate, gb_rate, b, a
+    
+    def plot_signals(original, processed, original_rate, processed_rate, b, a):
+        fig, axs = plt.subplots(3, 1, figsize=(12, 16))
+        
+        # Time domain signals
+        axs[0].plot(np.arange(len(original)) / original_rate, original)
+        axs[0].set_title("Original Pokémon Cry")
+        axs[0].set_xlabel("Time (s)")
+        axs[0].set_ylabel("Amplitude")
+    
+        axs[1].plot(np.arange(len(processed)) / processed_rate, processed)
+        axs[1].set_title("GameBoy Sound Simulation")
+        axs[1].set_xlabel("Time (s)")
+        axs[1].set_ylabel("Amplitude")
+    
+        # Bode plot
+        w, h = signal.freqs(b, a)
+        axs[2].semilogx(w, 20 * np.log10(abs(h)))
+        axs[2].set_title("Bode Plot of GameBoy Filter")
+        axs[2].set_xlabel("Frequency [radians / second]")
+        axs[2].set_ylabel("Magnitude [dB]")
+        axs[2].grid(True)
+    
+        plt.tight_layout()
+        plt.show()
+    
+    # Process the file
+    input_file = "data/Cri_0001_HOME.ogg"
+    output_file = os.path.join(os.path.dirname(input_file), "gameboy_pokemon_cry.wav")
+    
+    original, processed, original_rate, processed_rate, b, a = process_audio(input_file, output_file)
+    plot_signals(original, processed, original_rate, processed_rate, b, a)
     """
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
