@@ -1,7 +1,7 @@
 .. -*- mode: rst -*-
 
 ==========
-PixelBytes
+PixelBytes+
 ==========
 
 PixelByte is an innovative Python project designed to simultaneously generate text and images pixel by pixel in the form of sequences. The goal is to explore a unified embedding that allows for coherent multimodal generation.
