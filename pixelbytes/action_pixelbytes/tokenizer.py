@@ -32,7 +32,7 @@ DEFAULT_PALETTE = [(0x00, 0x00, 0x00), (0xfc, 0xfc, 0xfc), (0xf8, 0xf8, 0xf8), (
                     (0x00, 0x58, 0x00), (0x00, 0xfc, 0xfc), (0x00, 0xe8, 0xd8), (0x00, 0x88, 0x88),
                     (0x00, 0x40, 0x58), (0xf8, 0xd8, 0xf8), (0x78, 0x78, 0x78)]
 ## Action-space (Control & Audio)
-DEFAULT_ACTION_STATE = np.linspace(-1, 1, 41).tolist()
+DEFAULT_ACTION_STATE = np.linspace(-1, 1, 38).tolist()
 
 ##### Tokenizer
 class ActionPixelBytesTokenizer(PreTrainedTokenizer):
@@ -63,25 +63,43 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         return [self._convert_token_to_id(token) for token in tokens]
     
     def decode(self, token_ids, skip_special_tokens=True):
-        return [self._convert_id_to_token(id) for id in token_ids]
+        tokens = [self._convert_id_to_token(id) for id in token_ids]
+        
+        text_tokens, image_frames, current_frame, audio_tokens = [], [], [], []
+        for token in tokens:
+            if isinstance(token, bytes):
+                if token == b'\n':
+                    if current_frame:
+                        image_frames.append(current_frame)
+                        current_frame = []
+                elif token in DEFAULT_BYTES:
+                    text_tokens.append(token)
+            elif isinstance(token, tuple):
+                current_frame.append(token)
+            elif isinstance(token, (int, float)):
+                audio_tokens.append(token)
+        if current_frame:
+            image_frames.append(current_frame)
+        return {'text': text_tokens,
+                'image': image_frames,
+                'audio': audio_tokens}
 
-    def __call__(self, text=None, image=None, action_state=None, **kwargs):
+    def __call__(self, text=None, image=None, audio=None, **kwargs):
         inputs = []
         if text is not None:
             inputs.append(self.process_text(text))
         if image is not None:
             inputs.append(self.process_image(image))
-        if action_state is not None:
-            inputs.append(self.process_action_state(action_state))
+        if audio is not None:
+            inputs.append(self.process_action_state(audio['array']))
         if not inputs:
-            raise ValueError("At least one input (text, image, or action_state) must be provided")
+            raise ValueError("At least one input (text, image, or audio) must be provided")
         context, targets = zip(*[self.create_sequence_data(inp) for inp in inputs])
-        return { "input_ids": np.concatenate(context),
-                    "labels": np.concatenate(targets)}
+        return {"input_ids": np.concatenate(context),"labels": np.concatenate(targets)}
 
     def process_text(self, text):
         text = [bytes([b]) for b in unicodedata.normalize('NFKD', text.lower()).encode('ASCII', 'ignore')]
-        return np.array(self.convert_tokens_to_ids(text))[None,None,:]
+        return np.array(self.convert_tokens_to_ids(text)+[2])[None,None,:] # \n is text separator only
 
     def process_image(self, image):
         n_frames = getattr(image, "n_frames", 1) # PIL Image (GIF compatible)
@@ -90,23 +108,26 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
             image.seek(i)
             frame_lab = rgb2lab(np.array(image.convert('RGB')) / 255.0)
             frames_array[i] = cdist(frame_lab.reshape(-1, 3), self.LabPalette).argmin(axis=1).reshape(image.size[::-1])
-        return frames_array + self.bytes_size # Tips (pass all bytes ids)
+        frames_array += self.bytes_size
+        added_column = np.ones((n_frames, image.height, 1), dtype=np.uint8) # \t row separator
+        added_column[:, -1, :] = 2  # \n image-time separator
+        return np.concatenate((frames_array, added_column), axis=2)
 
-    def process_action_state(self, action_state):
-        # normalization (T,2) 0 : Action; 1 : State (Dataset BangBang control for State = 0 : see GymSetpoint or Pokemon digital_signal/sound)
-        normalized_state = np.interp(action_state, (action_state.min(axis=0), action_state.max(axis=0)), (-1, 1))
-        indices = cdist(normalized_state, DEFAULT_ACTION_STATE).argmin(axis=1)
-        return indices[:, None, None] + self.bytes_size + self.palet_size
+    def process_action_state(self, audio):
+        # normalization (2,T) 0 : Action (left); 1 : State (right) #stereo tips : Input signal to digital simulation speaker
+        normalized_state = np.interp(audio, (audio.min(axis=0), audio.max(axis=0)), (-1, 1))
+        indices = cdist(normalized_state.T, DEFAULT_ACTION_STATE).argmin(axis=1).reshape(-1, 2)
+        return np.vstack([indices + self.bytes_size + self.palet_size, [1, 2]])[:,:,None] # \t \n separator
 
     def create_sequence_data(self, context_array):
         n_frames, height, width = context_array.shape
         padded = np.pad(context_array, ((1, 0), (1, 1), (1, 1)), mode='constant', constant_values=0)
-        slices = [  padded[:-1, 1:-1, 1:-1],  # (t-1, i, j)
-                    padded[:-1, 1:-1, 2:],    # (t-1, i, j+1)
-                    padded[:-1, :-2, 1:-1],   # (t-1, i-1, j)
-                    padded[1:, :-2, :-2],     # (t, i-1, j-1)
-                    padded[1:, 1:-1, :-2],    # (t, i, j-1)
-                    padded[1:, :-2, 1:-1]]   # (t, i-1, j)
+        slices = [  padded[:-1, :-2, 1:-1],   # (t-1, i-1, j) : up value in t-1
+                    padded[:-1, 1:-1, 1:-1],  # (t-1, i, j) : value in t-1
+                    padded[:-1, 2:, 1:-1],    # (t-1, i+1, j) : down value in t-1
+                    padded[1:, :-2, :-2],     # (t, i-1, j-1) : up-left value in t
+                    padded[1:, 1:-1, :-2],    # (t, i, j-1) : up value in t
+                    padded[1:, :-2, 1:-1]]    # (t, i-1, j) : left value in t
         context = np.stack(slices, axis=-1)
         return context.reshape(-1, 6), context_array.reshape(-1, 1)
 
@@ -125,7 +146,8 @@ if __name__ == '__main__' :
     print(img_ids)
     pxby_dataset = load_dataset("ffurfaro/PixelBytes-Pokemon")
     bulbi = img = pxby_dataset['train']['image'][0]
-    img_ids = tokenizer(image=img)
+    text = pxby_dataset['train']['caption'][0]
+    img_ids = tokenizer(text=text, image=img)
     print(img_ids)
 
 

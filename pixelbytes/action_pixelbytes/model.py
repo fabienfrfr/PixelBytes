@@ -13,6 +13,7 @@ from tqdm import tqdm
 import numpy as np
 from transformers import PreTrainedModel, PretrainedConfig
 from torch.cuda.amp import autocast, GradScaler
+import torch.nn.functional as F
 
 class TokenizedDataset(Dataset):
     def __init__(self, data, tokenizer, seq_length=1024, stride=512):
@@ -27,14 +28,13 @@ class TokenizedDataset(Dataset):
 
     def __getitem__(self, idx):
         item_idx, start_idx = self._get_item_and_start_indices(idx)
-        item = self.data[item_idx]['image']
-        
-        tokenized = self.tokenizer(image=item)
+        item = self.data[item_idx]
+        tokenized = self.tokenizer(text=item.get('text'),
+                                   image=item.get('image'),
+                                   audio=item.get('audio'))
         input_ids = torch.tensor(tokenized['input_ids'], dtype=torch.long)
         labels = torch.tensor(tokenized['labels'], dtype=torch.long)
-        
         end_idx = start_idx + self.seq_length
-        
         return {'input_ids': input_ids[start_idx:end_idx],
                 'labels': labels[start_idx:end_idx]}
 
@@ -42,7 +42,9 @@ class TokenizedDataset(Dataset):
         self.total_sequences = 0
         self.cumulative_sequences = [0]
         for item in self.data:
-            tokenized = self.tokenizer(image=item['image'])
+            tokenized = self.tokenizer(text=item.get('text'),
+                                       image=item.get('image'),
+                                       audio=item.get('audio'))
             seq_length = len(tokenized['input_ids'])
             num_sequences = max(1, (seq_length - self.seq_length) // self.stride + 1)
             self.total_sequences += num_sequences
@@ -61,8 +63,7 @@ def collate_fn(batch):
     input_ids_padded = pad_sequence(input_ids, batch_first=True, padding_value=0)
     labels_padded = pad_sequence(labels, batch_first=True, padding_value=-100)
     
-    return {'input_ids': input_ids_padded,
-            'labels': labels_padded}
+    return {'input_ids': input_ids_padded,'labels': labels_padded}
 
 class ModelConfig_(PretrainedConfig):
     model_type = "lstm"
@@ -108,29 +109,22 @@ class BestPreTrainedModel(PreTrainedModel):
             for i, batch in enumerate(tqdm(dataloader)):
                 input_ids = batch['input_ids'].to(device)
                 labels = batch['labels'].to(device)
-                
-                if scaler is not None:
-                    with autocast():
-                        outputs = self(input_ids)
-                        loss = criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1))
-                        loss = loss / accumulation_steps
+                with torch.cuda.amp.autocast(enabled=scaler is not None):
+                    outputs = self(input_ids)
+                    # Mean of all output loss (need)
+                    loss = criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1)) / accumulation_steps
+                if scaler:
                     scaler.scale(loss).backward()
                 else:
-                    outputs = self(input_ids)
-                    loss = criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1))
-                    loss = loss / accumulation_steps
                     loss.backward()
-                
                 if (i + 1) % accumulation_steps == 0:
-                    if scaler is not None:
+                    if scaler:
                         scaler.step(optimizer)
                         scaler.update()
                     else:
                         optimizer.step()
                     optimizer.zero_grad()
-                
                 total_loss += loss.item() * accumulation_steps
-            
             avg_loss = total_loss / len(dataloader)
             print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}")
 
