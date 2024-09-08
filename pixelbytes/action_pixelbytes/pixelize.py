@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 @author: fabienfrfr
-Extract file from : https://www.pokencyclopedia.info/en/index.php?id=sprites/gen5
 """
 
 import os
@@ -69,22 +68,6 @@ class PixelizeGIF:
                 self.process_gif(file_name)
                 print(f"Completed: {file_name}")
 
-
 if __name__ == '__main__' :
-    
     pixelizer = PixelizeGIF('pokemon_gifs', 'output_gifs')
     pixelizer.process_all_gifs()
-    pixelizer = PixelizeGIF('pokemon_back_gifs', 'output_gifs')
-    pixelizer.process_all_gifs()
-    
-    from datasets import load_dataset
-    from huggingface_hub import login
-
-    def push_dataset(dataset, repo_name="ffurfaro/PixelBytes-PokemonSprites"):
-        token = input("Input Hugging Face Token: ")
-        # Connect and push to Hub
-        login(token)
-        dataset.push_to_hub(repo_name)
-    
-    dataset = load_dataset("imagefolder", data_dir="output_gifs")
-    push_dataset(dataset)

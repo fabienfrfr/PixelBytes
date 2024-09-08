@@ -4,10 +4,13 @@
 @author: fabienfrfr
 """
 
-import requests
+import os, re, shutil, requests
+import numpy as np, pandas as pd
 from bs4 import BeautifulSoup
-import pandas as pd
-import os
+from scipy import signal
+import soundfile as sf #import librosa
+from datasets import load_dataset, Dataset, Features, Value, Image, Audio
+from huggingface_hub import login
 
 class PokemonSpriteDownloader:
     BASE_URL = "https://www.pokencyclopedia.info"
@@ -75,3 +78,73 @@ class PokemonCryDownloader:
         # Save the data to a CSV file
         pd.DataFrame(pokemon_data).to_csv("pokemon_cries_data.csv", index=False)
         print("Finished! All cries have been downloaded and data saved.")
+
+def process_audio(input_file, output_file):
+    # Load audio and ensure it's mono
+    audio, sr = sf.read(input_file)
+    audio = audio.mean(axis=1) if audio.ndim > 1 else audio
+    # Normalize original audio
+    original = audio / np.max(np.abs(audio))
+    # GameBoy parameters
+    gb_rate = 8192
+    # Resample and filter
+    resampled = signal.resample(original, int(len(original) * gb_rate / sr))
+    b, a = signal.butter(4, [100 / (0.5 * gb_rate), 3000 / (0.5 * gb_rate)], btype='band')
+    filtered = signal.lfilter(b, a, resampled)
+    # Resample back to original length
+    processed = signal.resample(filtered, len(original))
+    # Normalize processed audio
+    processed = processed / np.max(np.abs(processed))
+    # Combine original and processed signals
+    stereo = np.column_stack((original, processed))
+    # Save as OGG
+    sf.write(output_file, stereo, sr, format='ogg', subtype='vorbis')
+
+def process_all_audio(input_dir, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    for file in sorted(os.listdir(input_dir)):
+        if file.endswith(".ogg"):
+            number = ''.join(filter(str.isdigit, file))
+            process_audio(os.path.join(input_dir, file), os.path.join(output_dir, f"{number}.ogg"))
+    print(f"Processed audio files saved in '{output_dir}'")
+
+def process_move_gifs(input_dir, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    pattern = re.compile(r'ani_bw_(\d+)(?:-[a-z])?.gif')
+    for filename in os.listdir(input_dir):
+        match = pattern.match(filename)
+        if match:
+            new_filename = f"{int(match.group(1)):04d}.gif"
+            shutil.move(os.path.join(input_dir, filename), os.path.join(output_dir, new_filename))
+            print(f"Moved: {filename} -> {new_filename}")
+
+def create_pokemon_csv(dataset_name, output_file='pokemon_data.csv'):
+    dataset = load_dataset(dataset_name)
+    data = [{'Filename': item['image'].filename, 'Caption': item['caption']}for item in dataset['train']]
+    df = pd.DataFrame(data)
+    df.to_csv(output_file, index=False)
+    print(f"CSV file '{output_file}' has been created.")
+
+def create_huggingface_dataset(dataset_dir):
+    # Get file lists
+    images = os.listdir(os.path.join(dataset_dir, "images"))
+    numbers = [os.path.splitext(img)[0] for img in images]
+    # Create data dictionary
+    data = {
+        "number": numbers,
+        "image": [os.path.join(dataset_dir, "images", f"{num}.gif") for num in numbers],
+        "audio": [os.path.join(dataset_dir, "audio", f"{num}.ogg") for num in numbers],
+        "text": [open(os.path.join(dataset_dir, "text", f"{num}.txt"), 'r').read().strip() for num in numbers]
+    }
+    # Create and cast dataset
+    dataset = Dataset.from_dict(data)
+    features = Features({"number": Value("string"), "image": Image(), "audio": Audio(), "text": Value("string")})
+    return dataset.cast(features)
+
+def push_dataset_to_hub(dataset, repo_name):
+    # Ask for the Hugging Face token
+    token = input("Please enter your Hugging Face token: ")
+    # Login to Hugging Face with the provided token
+    login(token=token)
+    # Push to Hub
+    dataset.push_to_hub(repo_name)

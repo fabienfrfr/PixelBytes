@@ -108,7 +108,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
             image.seek(i)
             frame_lab = rgb2lab(np.array(image.convert('RGB')) / 255.0)
             frames_array[i] = cdist(frame_lab.reshape(-1, 3), self.LabPalette).argmin(axis=1).reshape(image.size[::-1])
-        frames_array += self.bytes_size
+        frames_array += self.bytes_size # tips order
         added_column = np.ones((n_frames, image.height, 1), dtype=np.uint8) # \t row separator
         added_column[:, -1, :] = 2  # \n image-time separator
         return np.concatenate((frames_array, added_column), axis=2)
