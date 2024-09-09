@@ -103,25 +103,25 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         text = [bytes([b]) for b in unicodedata.normalize('NFKD', text.lower()).encode('ASCII', 'ignore')]
         return np.array(self.convert_tokens_to_ids(text)+[2])[None,None,:] # \n is text separator only
 
-    def process_image(self, image):
+    def process_image(self, image, slicing=3):
         n_frames = getattr(image, "n_frames", 1) # PIL Image (GIF compatible)
-        frames_array = np.empty((n_frames, image.height, image.width), dtype=np.uint8)
+        frames = np.empty((n_frames, image.height, image.width), dtype=np.uint8)
         for i in range(n_frames):
             image.seek(i)
-            frame_lab = rgb2lab(np.array(image.convert('RGB')) / 255.0)
-            frames_array[i] = cdist(frame_lab.reshape(-1, 3), self.LabPalette).argmin(axis=1).reshape(image.size[::-1])
-        frames_array += self.bytes_size # tips order
-        added_column = np.ones((n_frames, image.height, 1), dtype=np.uint8) # \t row separator
+            frame = rgb2lab(np.array(image.convert('RGB')) / 255.0)
+            frames[i] = cdist(frame.reshape(-1, 3), self.LabPalette).argmin(axis=1).reshape(image.size[::-1])
+        frames = (frames + self.bytes_size)[::slicing, ::slicing, ::slicing] # tips order and slicing
+        added_column = np.ones((frames.shape[0], frames.shape[1], 1), dtype=np.uint8) # \t row separator
         added_column[:, -1, :] = 2  # \n image-time separator
-        return np.concatenate((frames_array, added_column), axis=2)
+        return np.concatenate((frames, added_column), axis=2)
 
-    def process_action_state(self, audio):
+    def process_action_state(self, audio, slicing=3):
         if audio.ndim < 2 : audio = audio[None] # sound need to be mono, control in stereo
         # normalization (2,T) 0 : Action (left); 1 : State (right) #stereo tips : Input signal to digital simulation speaker
         normalized_state = np.clip(stats.zscore(audio, axis=1), -1, 1).flatten()
         indices = cKDTree(np.array(DEFAULT_ACTION_STATE).reshape(-1, 1)).query(normalized_state.reshape(-1, 1))[1].reshape(audio.shape)
-        # Add offsets to indices and create separators (ensure at least width of 2)
-        indices += self.bytes_size + self.palet_size 
+        # Add offsets to indices, slicing and create separators (ensure at least width of 2)
+        indices = (indices + self.bytes_size + self.palet_size)[:,::slicing] 
         separators = np.array([[1], [2]])[:indices.shape[0]]
         return np.concatenate([indices, separators], axis=1).T[:, None, :] # reshape (t, 1, 2)
 

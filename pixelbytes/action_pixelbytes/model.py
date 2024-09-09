@@ -99,7 +99,7 @@ class BestPreTrainedModel(PreTrainedModel):
                 outputs = self(current_input)
                 next_token_logits = outputs[:, -1, :] / temperature
                 next_token = torch.multinomial(torch.softmax(next_token_logits, dim=-1), num_samples=1)
-                current_input = torch.cat([current_input, next_token], dim=1) # it's wrong : need to call tokenizer
+                current_input = torch.cat([current_input, next_token], dim=1) # it's wrong : need to tokenizer decode
             return current_input
 
     def train_model(self, dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4):
