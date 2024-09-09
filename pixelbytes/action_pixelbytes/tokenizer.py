@@ -38,11 +38,12 @@ DEFAULT_ACTION_STATE = np.linspace(-1, 1, 38).tolist()
 
 ##### Tokenizer
 class ActionPixelBytesTokenizer(PreTrainedTokenizer):
-    def __init__(self, **kwargs):
+    def __init__(self, data_slicing=1, **kwargs):
         ## Bytes (ASCII - UTF8) + Pixel (RGB NES Palette) + Action-space (Control & Audio)
         ActionPixelbytes = DEFAULT_BYTES + DEFAULT_PALETTE + DEFAULT_ACTION_STATE
         self.vocab = {ActionPixelbytes[i]: i for i in range(len(ActionPixelbytes))}
         super().__init__(**kwargs)
+        self.slicing = data_slicing
         self.bytes_size = len(DEFAULT_BYTES)
         self.palet_size = len(DEFAULT_PALETTE)
         self.LabPalette = torch.tensor(rgb2lab(np.array(DEFAULT_PALETTE)[None, :, :] / 255.0)[0])
@@ -103,7 +104,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         text = [bytes([b]) for b in unicodedata.normalize('NFKD', text.lower()).encode('ASCII', 'ignore')]
         return torch.tensor(self.convert_tokens_to_ids(text) + [2], dtype=torch.long).unsqueeze(0).unsqueeze(0)
 
-    def process_image(self, image, slicing=3):
+    def process_image(self, image):
         n_frames = getattr(image, "n_frames", 1)
         frames = torch.empty((n_frames, image.height, image.width), dtype=torch.long)
         for i in range(n_frames):
@@ -111,19 +112,19 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
             frame = torch.tensor(rgb2lab(np.array(image.convert('RGB')) / 255.0))
             distances = torch.cdist(frame.reshape(-1, 3), self.LabPalette)
             frames[i] = distances.argmin(dim=1).reshape(image.size[::-1])
-        frames = (frames + self.bytes_size)[::slicing, ::slicing, ::slicing]
+        frames = (frames + self.bytes_size)[::self.slicing, ::self.slicing, ::self.slicing]
         added_column = torch.ones((frames.shape[0], frames.shape[1], 1), dtype=torch.long)
         added_column[:, -1, :] = 2
         return torch.cat((frames, added_column), dim=2)
 
-    def process_action_state(self, audio, slicing=3):
+    def process_action_state(self, audio):
         audio = torch.tensor(audio)
         if audio.dim() < 2:
             audio = audio.unsqueeze(0)
         normalized_state = torch.clamp(torch.tensor(stats.zscore(audio.numpy(), axis=1)), -1, 1).flatten()
         action_state_tensor = torch.tensor(DEFAULT_ACTION_STATE).reshape(-1, 1)
         indices = torch.tensor(cKDTree(action_state_tensor.numpy()).query(normalized_state.reshape(-1, 1).numpy())[1]).reshape(audio.shape)
-        indices = (indices + self.bytes_size + self.palet_size)[:, ::slicing]
+        indices = (indices + self.bytes_size + self.palet_size)[:, ::self.slicing]
         separators = torch.tensor([[1], [2]])[:indices.shape[0]]
         return torch.cat([indices, separators], dim=1).T.unsqueeze(1)
 

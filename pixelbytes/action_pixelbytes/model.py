@@ -4,10 +4,10 @@
 @author: fabienfrfr
 """
 
-import torch
+import torch, random
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 import numpy as np
@@ -23,7 +23,7 @@ class TokenizedDataset(Dataset):
         self._preprocess_data(data, tokenizer)
 
     def _preprocess_data(self, data, tokenizer):
-        for item in data:
+        for item in data :
             tokenized = tokenizer(text=item.get('text'),
                                   image=item.get('image'),
                                   audio=item.get('audio'))
@@ -50,6 +50,25 @@ class TokenizedDataset(Dataset):
                 return i, idx * self.stride
             idx -= num_sequences
         raise IndexError("Index out of range")
+    
+    def get_num_sequences(self, item):
+        return max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
+
+class ShuffledSampler(Sampler):
+    def __init__(self, data_source, seed=None):
+        self.data_source = data_source
+        self.seed = seed
+        self.indices = list(range(len(data_source)))
+        
+    def __iter__(self):
+        if self.seed is not None:
+            random.seed(self.seed)
+        random.shuffle(self.indices)
+        for idx in self.indices:
+            yield idx
+
+    def __len__(self):
+        return len(self.data_source)
 
 def collate_fn(batch):
     input_ids = [item['input_ids'] for item in batch]
@@ -98,31 +117,33 @@ class BestPreTrainedModel(PreTrainedModel):
             return current_input
 
     def train_model(self, dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4):
+        best_loss = float('inf')
         for epoch in range(epochs):
             self.train()
-            total_loss = 0
-            optimizer.zero_grad()
-            for i, batch in enumerate(tqdm(dataloader)):
-                input_ids = batch['input_ids'].to(device)
-                labels = batch['labels'].to(device)
+            total_loss = total_correct = total_predictions = 0
+            for i, batch in enumerate(tqdm(dataloader, desc=f"Epoch {epoch+1}/{epochs}")):
+                input_ids, labels = batch['input_ids'].to(device), batch['labels'].to(device)
                 with torch.cuda.amp.autocast(enabled=scaler is not None):
                     outputs = self(input_ids)
-                    # Mean of all output loss (need)
                     loss = criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1)) / accumulation_steps
-                if scaler:
-                    scaler.scale(loss).backward()
-                else:
-                    loss.backward()
+                (scaler.scale(loss) if scaler else loss).backward()
                 if (i + 1) % accumulation_steps == 0:
-                    if scaler:
-                        scaler.step(optimizer)
-                        scaler.update()
-                    else:
-                        optimizer.step()
+                    (scaler.step(optimizer) if scaler else optimizer.step())
+                    (scaler.update() if scaler else None)
                     optimizer.zero_grad()
                 total_loss += loss.item() * accumulation_steps
+                # Accuracy
+                _, predicted = torch.max(outputs, dim=-1)
+                total_correct += (predicted.view(-1) == labels.view(-1)).sum().item()
+                total_predictions += labels.numel()
             avg_loss = total_loss / len(dataloader)
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}")
+            accuracy = total_correct / total_predictions
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}")
+            if avg_loss < best_loss:
+                best_loss = avg_loss
+                self.save_pretrained(os.path.join(os.getcwd(), "best_model"))
+                print(f"Best model saved with loss: {best_loss:.4f}")
+            self.save_pretrained(os.path.join(os.getcwd(), "last_model"))
 
 if __name__ == '__main__':
     from tokenizer import ActionPixelBytesTokenizer
@@ -131,8 +152,10 @@ if __name__ == '__main__':
     def count_parameters_in_k(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad) / 1000
 
-    tokenizer = ActionPixelBytesTokenizer()
     hf_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")
+    
+    DATA_REDUCTION = 4
+    tokenizer = ActionPixelBytesTokenizer(data_slicing=DATA_REDUCTION)
     
     # Paramètres
     VOCAB_SIZE = tokenizer.vocab_size
@@ -155,7 +178,8 @@ if __name__ == '__main__':
 
     # Préparation des données
     dataset = TokenizedDataset(hf_dataset['train'], tokenizer, SEQ_LENGTH, STRIDE)
-    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
+    sampler = ShuffledSampler(dataset, seed=42)
+    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn, sampler=sampler)
 
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     criterion = nn.CrossEntropyLoss(ignore_index=-100)
