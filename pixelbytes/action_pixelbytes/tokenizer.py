@@ -136,14 +136,16 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
             padded[:-1, 1:-1, 1:-1],# (t-1, i, j) : value in t-1
             padded[:-1, 2:, 1:-1],  # (t-1, i+1, j) : down value in t-1
             padded[1:, :-2, :-2],   # (t, i-1, j-1) : up-left value in t
-            padded[1:, 1:-1, :-2],  # (t, i, j-1) : up value in t
-            padded[1:, :-2, 1:-1]]   # (t, i-1, j) : left value in t
-        context = torch.stack(slices, dim=-1)
-        return context.reshape(-1, 6), context_array.reshape(-1, 1)
+            padded[1:, :-2, 1:-1],  # (t, i-1, j) : up value in t
+            padded[1:, 1:-1, :-2]]  # (t, i, j-1) : wrong previous value
+        context = torch.stack(slices, dim=-1).reshape(-1, 6)
+        targets = context_array.reshape(-1, 1)
+        context[1:,-1] = targets[:-1,0] # true previous value (AutoEncoder)
+        return context, targets
 
 ### basic test
 if __name__ == '__main__' :
-    tokenizer = ActionPixelBytesTokenizer()
+    tokenizer = ActionPixelBytesTokenizer(data_slicing=4)
     from datasets import load_dataset
     pxby_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")
     bulbi = img = pxby_dataset['train']['image'][0]

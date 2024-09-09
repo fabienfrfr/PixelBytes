@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
-import numpy as np
+import numpy as np, pandas as pd
 from transformers import PreTrainedModel, PretrainedConfig
 from torch.cuda.amp import autocast, GradScaler
 import torch.nn.functional as F
@@ -106,15 +106,17 @@ class BestPreTrainedModel(PreTrainedModel):
         output, _ = self.lstm(embedded)
         return self.fc(output)
 
-    def generate(self, input_ids, max_length, temperature=1.0):
+    def generate(self, input_ids, num_generate, temperature=1.0):
         self.eval()
         with torch.no_grad():
-            current_input = input_ids
-            for _ in range(max_length - input_ids.size(1)):
-                outputs = self(current_input)
-                next_token_logits = outputs[:, -1, :] / temperature
-                next_token = torch.multinomial(torch.softmax(next_token_logits, dim=-1), num_samples=1)
-                current_input = torch.cat([current_input, next_token], dim=1) # it's wrong : need to tokenizer decode
+            current_input = input_ids.clone()
+            for i in range(num_generate):
+                # Generate next token
+                next_token = torch.multinomial(
+                    torch.softmax(self(current_input)[:, -1, :] / temperature, dim=-1),
+                    num_samples=1)
+                # Replace the (i+1)th token from the end --> not true generator for image or action_state
+                current_input[:, -(i+1)] = next_token.squeeze(-1)
             return current_input
 
     def train_model(self, train_dataloader, val_dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4, eval_every=5):
