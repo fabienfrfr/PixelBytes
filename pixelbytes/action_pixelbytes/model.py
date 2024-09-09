@@ -67,12 +67,13 @@ def collate_fn(batch):
 
 class ModelConfig_(PretrainedConfig):
     model_type = "lstm"
-    def __init__(self, vocab_size=30000, embed_size=256, hidden_size=512, num_layers=2, **kwargs):
+    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, **kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.embed_size = embed_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        self.pxby_dim = pxby_dim
 
 class BestPreTrainedModel(PreTrainedModel):
     config_class = ModelConfig_
@@ -81,7 +82,7 @@ class BestPreTrainedModel(PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.embedding = nn.Embedding(config.vocab_size, config.embed_size, padding_idx=0)
-        self.lstm = nn.LSTM(config.embed_size * 6, config.hidden_size, config.num_layers, batch_first=True)
+        self.lstm = nn.LSTM(config.embed_size * config.pxby_dim, config.hidden_size, config.num_layers, batch_first=True)
         self.fc = nn.Linear(config.hidden_size, config.vocab_size)
 
     def forward(self, input_ids):
@@ -98,7 +99,7 @@ class BestPreTrainedModel(PreTrainedModel):
                 outputs = self(current_input)
                 next_token_logits = outputs[:, -1, :] / temperature
                 next_token = torch.multinomial(torch.softmax(next_token_logits, dim=-1), num_samples=1)
-                current_input = torch.cat([current_input, next_token], dim=1)
+                current_input = torch.cat([current_input, next_token], dim=1) # it's wrong : need to call tokenizer
             return current_input
 
     def train_model(self, dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4):
@@ -136,13 +137,14 @@ if __name__ == '__main__':
         return sum(p.numel() for p in model.parameters() if p.requires_grad) / 1000
 
     tokenizer = ActionPixelBytesTokenizer()
-    anim_dataset = load_dataset("ffurfaro/PixelBytes-PokemonSprites")
-
+    hf_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")
+    
     # Paramètres
     VOCAB_SIZE = tokenizer.vocab_size
     EMBED_SIZE = 128
     HIDDEN_SIZE = 512
     NUM_LAYERS = 2
+    PXBY_DIM = 6 # tokenizer
     BATCH_SIZE = 32
     EPOCHS = 10
     LEARNING_RATE = 0.001
@@ -152,12 +154,12 @@ if __name__ == '__main__':
     STRIDE = 512
     
     # Initialisation du modèle
-    config = ModelConfig_(vocab_size=VOCAB_SIZE, embed_size=EMBED_SIZE, hidden_size=HIDDEN_SIZE, num_layers=NUM_LAYERS)
+    config = ModelConfig_(vocab_size=VOCAB_SIZE, embed_size=EMBED_SIZE, hidden_size=HIDDEN_SIZE, num_layers=NUM_LAYERS, pxby_dim=PXBY_DIM)
     model = BestPreTrainedModel(config).to(DEVICE)
     print(f"Le modèle a {count_parameters_in_k(model):.2f}k paramètres entraînables.")
 
     # Préparation des données
-    dataset = TokenizedDataset(anim_dataset['train'], tokenizer, SEQ_LENGTH, STRIDE)
+    dataset = TokenizedDataset(hf_dataset['train'], tokenizer, SEQ_LENGTH, STRIDE)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
 
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)

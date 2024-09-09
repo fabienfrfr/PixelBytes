@@ -9,6 +9,8 @@ import numpy as np, os, unicodedata
 from skimage.color import rgb2lab
 from typing import List, Dict, Union, Tuple
 from scipy.spatial.distance import cdist
+from scipy.spatial import cKDTree
+from scipy import stats
 
 ## Bytes (ASCII - UTF8)
 DEFAULT_BYTES = [b'\x00', b'\t', b'\n', b' ', b'"', b"'", b'(', b')', b'*', b',', b'-', b'+', 
@@ -114,10 +116,14 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         return np.concatenate((frames_array, added_column), axis=2)
 
     def process_action_state(self, audio):
+        if audio.ndim < 2 : audio = audio[None] # sound need to be mono, control in stereo
         # normalization (2,T) 0 : Action (left); 1 : State (right) #stereo tips : Input signal to digital simulation speaker
-        normalized_state = np.interp(audio, (audio.min(axis=0), audio.max(axis=0)), (-1, 1))
-        indices = cdist(normalized_state.T, DEFAULT_ACTION_STATE).argmin(axis=1).reshape(-1, 2)
-        return np.vstack([indices + self.bytes_size + self.palet_size, [1, 2]])[:,:,None] # \t \n separator
+        normalized_state = np.clip(stats.zscore(audio, axis=1), -1, 1).flatten()
+        indices = cKDTree(np.array(DEFAULT_ACTION_STATE).reshape(-1, 1)).query(normalized_state.reshape(-1, 1))[1].reshape(audio.shape)
+        # Add offsets to indices and create separators (ensure at least width of 2)
+        indices += self.bytes_size + self.palet_size 
+        separators = np.array([[1], [2]])[:indices.shape[0]]
+        return np.concatenate([indices, separators], axis=1).T[:, None, :] # reshape (t, 1, 2)
 
     def create_sequence_data(self, context_array):
         n_frames, height, width = context_array.shape
@@ -135,20 +141,12 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
 if __name__ == '__main__' :
     tokenizer = ActionPixelBytesTokenizer()
     from datasets import load_dataset
-
-    print("https://www.perplexity.ai/search/est-ce-qu-il-existe-des-tokeni-EXjFBpLKSje6npL0pYuU5Q")
-    text = "Hello, world!"
-    text_ids = tokenizer(text=text)
-    print(text_ids)
-    anim_dataset = load_dataset("ffurfaro/PixelBytes-PokemonSprites")
-    bulbi_back = img = anim_dataset['train']['image'][0]
-    img_ids = tokenizer(image=img)
-    print(img_ids)
-    pxby_dataset = load_dataset("ffurfaro/PixelBytes-Pokemon")
+    pxby_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")
     bulbi = img = pxby_dataset['train']['image'][0]
-    text = pxby_dataset['train']['caption'][0]
-    img_ids = tokenizer(text=text, image=img)
-    print(img_ids)
+    text = pxby_dataset['train']['text'][0]
+    cry = pxby_dataset['train']['audio'][0]
+    bulbi_ids = tokenizer(text=text, image=img, audio=cry)
+    print(bulbi_ids)
 
 
 

@@ -129,6 +129,7 @@ def create_huggingface_dataset(dataset_dir):
     # Get file lists
     images = os.listdir(os.path.join(dataset_dir, "images"))
     numbers = [os.path.splitext(img)[0] for img in images]
+    numbers.sort(key=lambda x: int(x))
     # Create data dictionary
     data = {
         "number": numbers,
@@ -138,7 +139,7 @@ def create_huggingface_dataset(dataset_dir):
     }
     # Create and cast dataset
     dataset = Dataset.from_dict(data)
-    features = Features({"number": Value("string"), "image": Image(), "audio": Audio(), "text": Value("string")})
+    features = Features({"number": Value("string"), "image": Image(), "audio": Audio(sampling_rate=16000,mono=False), "text": Value("string")})
     return dataset.cast(features)
 
 def push_dataset_to_hub(dataset, repo_name):
