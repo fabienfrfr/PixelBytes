@@ -83,13 +83,14 @@ def collate_fn(batch):
 
 class ModelConfig_(PretrainedConfig):
     model_type = "lstm"
-    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, **kwargs):
+    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, auto_encoder=False, **kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.embed_size = embed_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.pxby_dim = pxby_dim
+        self.auto_encoder = auto_encoder
 
 class BestPreTrainedModel(PreTrainedModel):
     config_class = ModelConfig_
@@ -100,12 +101,15 @@ class BestPreTrainedModel(PreTrainedModel):
         self.embedding = nn.Embedding(config.vocab_size, config.embed_size, padding_idx=0)
         self.lstm = nn.LSTM(config.embed_size * config.pxby_dim, config.hidden_size, config.num_layers, batch_first=True)
         self.fc = nn.Linear(config.hidden_size, config.vocab_size)
+        self.pxby_dim, self.auto_encoder = config.pxby_dim, config.auto_encoder
 
     def forward(self, input_ids):
         batch_size, seq_len, context_size = input_ids.shape
         embedded = self.embedding(input_ids).view(batch_size, seq_len, -1)
         output, _ = self.lstm(embedded)
-        return self.fc(output)
+        if self.auto_encoder: # Reshape output to (batch_size, seq_len, pxby_dim, hidden_size)
+            output = output.view(batch_size, seq_len, self.pxby_dim, -1) # For Shape: (batch_size, seq_len, pxby_dim, vocab_size)
+        return self.fc(output) # (Else) Shape: (batch_size, seq_len, vocab_size)
 
     def generate(self, input_ids, num_generate, temperature=1.0):
         self.eval()
@@ -116,7 +120,7 @@ class BestPreTrainedModel(PreTrainedModel):
                 next_token = torch.multinomial(
                     torch.softmax(self(current_input)[:, -1, :] / temperature, dim=-1),
                     num_samples=1)
-                # Replace the (i+1)th token from the end --> not true generator for image or action_state
+                # Replace the (i+1)th token from the end --> not true generator for image or action_state (adapt if auto-encoder)
                 current_input[:, -(i+1)] = next_token.squeeze(-1)
             return current_input
 
