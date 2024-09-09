@@ -17,44 +17,39 @@ import torch.nn.functional as F
 
 class TokenizedDataset(Dataset):
     def __init__(self, data, tokenizer, seq_length=1024, stride=512):
-        self.data = data
-        self.tokenizer = tokenizer
         self.seq_length = seq_length
         self.stride = stride
+        self.tokenized_data = []
+        self._preprocess_data(data, tokenizer)
+
+    def _preprocess_data(self, data, tokenizer):
+        for item in data:
+            tokenized = tokenizer(text=item.get('text'),
+                                  image=item.get('image'),
+                                  audio=item.get('audio'))
+            self.tokenized_data.append(tokenized)
         self._calculate_total_sequences()
 
+    def _calculate_total_sequences(self):
+        self.total_sequences = sum(max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
+                                   for item in self.tokenized_data)
     def __len__(self):
         return self.total_sequences
 
     def __getitem__(self, idx):
         item_idx, start_idx = self._get_item_and_start_indices(idx)
-        item = self.data[item_idx]
-        tokenized = self.tokenizer(text=item.get('text'),
-                                   image=item.get('image'),
-                                   audio=item.get('audio'))
-        input_ids = torch.tensor(tokenized['input_ids'], dtype=torch.long)
-        labels = torch.tensor(tokenized['labels'], dtype=torch.long)
+        tokenized = self.tokenized_data[item_idx]
         end_idx = start_idx + self.seq_length
-        return {'input_ids': input_ids[start_idx:end_idx],
-                'labels': labels[start_idx:end_idx]}
-
-    def _calculate_total_sequences(self):
-        self.total_sequences = 0
-        self.cumulative_sequences = [0]
-        for item in self.data:
-            tokenized = self.tokenizer(text=item.get('text'),
-                                       image=item.get('image'),
-                                       audio=item.get('audio'))
-            seq_length = len(tokenized['input_ids'])
-            num_sequences = max(1, (seq_length - self.seq_length) // self.stride + 1)
-            self.total_sequences += num_sequences
-            self.cumulative_sequences.append(self.total_sequences)
+        return {'input_ids': torch.tensor(tokenized['input_ids'][start_idx:end_idx], dtype=torch.long),
+                'labels': torch.tensor(tokenized['labels'][start_idx:end_idx], dtype=torch.long)}
 
     def _get_item_and_start_indices(self, idx):
-        item_idx = next(i for i, cum_seq in enumerate(self.cumulative_sequences) if cum_seq > idx) - 1
-        relative_idx = idx - self.cumulative_sequences[item_idx]
-        start_idx = relative_idx * self.stride
-        return item_idx, start_idx
+        for i, item in enumerate(self.tokenized_data):
+            num_sequences = max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
+            if idx < num_sequences:
+                return i, idx * self.stride
+            idx -= num_sequences
+        raise IndexError("Index out of range")
 
 def collate_fn(batch):
     input_ids = [item['input_ids'] for item in batch]

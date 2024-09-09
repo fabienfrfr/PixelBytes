@@ -3,12 +3,12 @@
 """
 @author: fabienfrfr
 """
-
+import torch, unicodedata
+from torch import nn
 from transformers import PreTrainedTokenizer
-import numpy as np, os, unicodedata
 from skimage.color import rgb2lab
 from typing import List, Dict, Union, Tuple
-from scipy.spatial.distance import cdist
+import numpy as np
 from scipy.spatial import cKDTree
 from scipy import stats
 
@@ -40,12 +40,12 @@ DEFAULT_ACTION_STATE = np.linspace(-1, 1, 38).tolist()
 class ActionPixelBytesTokenizer(PreTrainedTokenizer):
     def __init__(self, **kwargs):
         ## Bytes (ASCII - UTF8) + Pixel (RGB NES Palette) + Action-space (Control & Audio)
-        ActionPixelbytes =  DEFAULT_BYTES + DEFAULT_PALETTE + DEFAULT_ACTION_STATE
-        self.vocab = {ActionPixelbytes[i] : i for i in range(len(ActionPixelbytes))}
+        ActionPixelbytes = DEFAULT_BYTES + DEFAULT_PALETTE + DEFAULT_ACTION_STATE
+        self.vocab = {ActionPixelbytes[i]: i for i in range(len(ActionPixelbytes))}
         super().__init__(**kwargs)
-        self.bytes_size = len(DEFAULT_BYTES) # first is null values
+        self.bytes_size = len(DEFAULT_BYTES)
         self.palet_size = len(DEFAULT_PALETTE)
-        self.LabPalette = rgb2lab(np.array(DEFAULT_PALETTE)[None, :, :] / 255.0)[0]
+        self.LabPalette = torch.tensor(rgb2lab(np.array(DEFAULT_PALETTE)[None, :, :] / 255.0)[0])
         self.ids_to_tokens = {v: k for k, v in self.vocab.items()}
 
     @property
@@ -53,7 +53,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         return len(self.vocab)
     
     def get_vocab(self) -> Dict[str, int]:
-        return {k: v for k, v in self.vocab.items()}
+        return dict(self.vocab)
 
     def _convert_token_to_id(self, token: Union[bytes, tuple]) -> int:
         return self.vocab.get(token, self.vocab.get(b'[UNK]', 0))
@@ -97,44 +97,47 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         if not inputs:
             raise ValueError("At least one input (text, image, or audio) must be provided")
         context, targets = zip(*[self.create_sequence_data(inp) for inp in inputs])
-        return {"input_ids": np.concatenate(context),"labels": np.concatenate(targets)}
+        return {"input_ids": torch.cat(context), "labels": torch.cat(targets)}
 
     def process_text(self, text):
         text = [bytes([b]) for b in unicodedata.normalize('NFKD', text.lower()).encode('ASCII', 'ignore')]
-        return np.array(self.convert_tokens_to_ids(text)+[2])[None,None,:] # \n is text separator only
+        return torch.tensor(self.convert_tokens_to_ids(text) + [2], dtype=torch.long).unsqueeze(0).unsqueeze(0)
 
     def process_image(self, image, slicing=3):
-        n_frames = getattr(image, "n_frames", 1) # PIL Image (GIF compatible)
-        frames = np.empty((n_frames, image.height, image.width), dtype=np.uint8)
+        n_frames = getattr(image, "n_frames", 1)
+        frames = torch.empty((n_frames, image.height, image.width), dtype=torch.long)
         for i in range(n_frames):
             image.seek(i)
-            frame = rgb2lab(np.array(image.convert('RGB')) / 255.0)
-            frames[i] = cdist(frame.reshape(-1, 3), self.LabPalette).argmin(axis=1).reshape(image.size[::-1])
-        frames = (frames + self.bytes_size)[::slicing, ::slicing, ::slicing] # tips order and slicing
-        added_column = np.ones((frames.shape[0], frames.shape[1], 1), dtype=np.uint8) # \t row separator
-        added_column[:, -1, :] = 2  # \n image-time separator
-        return np.concatenate((frames, added_column), axis=2)
+            frame = torch.tensor(rgb2lab(np.array(image.convert('RGB')) / 255.0))
+            distances = torch.cdist(frame.reshape(-1, 3), self.LabPalette)
+            frames[i] = distances.argmin(dim=1).reshape(image.size[::-1])
+        frames = (frames + self.bytes_size)[::slicing, ::slicing, ::slicing]
+        added_column = torch.ones((frames.shape[0], frames.shape[1], 1), dtype=torch.long)
+        added_column[:, -1, :] = 2
+        return torch.cat((frames, added_column), dim=2)
 
     def process_action_state(self, audio, slicing=3):
-        if audio.ndim < 2 : audio = audio[None] # sound need to be mono, control in stereo
-        # normalization (2,T) 0 : Action (left); 1 : State (right) #stereo tips : Input signal to digital simulation speaker
-        normalized_state = np.clip(stats.zscore(audio, axis=1), -1, 1).flatten()
-        indices = cKDTree(np.array(DEFAULT_ACTION_STATE).reshape(-1, 1)).query(normalized_state.reshape(-1, 1))[1].reshape(audio.shape)
-        # Add offsets to indices, slicing and create separators (ensure at least width of 2)
-        indices = (indices + self.bytes_size + self.palet_size)[:,::slicing] 
-        separators = np.array([[1], [2]])[:indices.shape[0]]
-        return np.concatenate([indices, separators], axis=1).T[:, None, :] # reshape (t, 1, 2)
+        audio = torch.tensor(audio)
+        if audio.dim() < 2:
+            audio = audio.unsqueeze(0)
+        normalized_state = torch.clamp(torch.tensor(stats.zscore(audio.numpy(), axis=1)), -1, 1).flatten()
+        action_state_tensor = torch.tensor(DEFAULT_ACTION_STATE).reshape(-1, 1)
+        indices = torch.tensor(cKDTree(action_state_tensor.numpy()).query(normalized_state.reshape(-1, 1).numpy())[1]).reshape(audio.shape)
+        indices = (indices + self.bytes_size + self.palet_size)[:, ::slicing]
+        separators = torch.tensor([[1], [2]])[:indices.shape[0]]
+        return torch.cat([indices, separators], dim=1).T.unsqueeze(1)
 
     def create_sequence_data(self, context_array):
         n_frames, height, width = context_array.shape
-        padded = np.pad(context_array, ((1, 0), (1, 1), (1, 1)), mode='constant', constant_values=0)
-        slices = [  padded[:-1, :-2, 1:-1],   # (t-1, i-1, j) : up value in t-1
-                    padded[:-1, 1:-1, 1:-1],  # (t-1, i, j) : value in t-1
-                    padded[:-1, 2:, 1:-1],    # (t-1, i+1, j) : down value in t-1
-                    padded[1:, :-2, :-2],     # (t, i-1, j-1) : up-left value in t
-                    padded[1:, 1:-1, :-2],    # (t, i, j-1) : up value in t
-                    padded[1:, :-2, 1:-1]]    # (t, i-1, j) : left value in t
-        context = np.stack(slices, axis=-1)
+        padded = nn.functional.pad(context_array, (1, 1, 1, 1, 1, 0), mode='constant', value=0)
+        slices = [
+            padded[:-1, :-2, 1:-1], # (t-1, i-1, j) : up value in t-1
+            padded[:-1, 1:-1, 1:-1],# (t-1, i, j) : value in t-1
+            padded[:-1, 2:, 1:-1],  # (t-1, i+1, j) : down value in t-1
+            padded[1:, :-2, :-2],   # (t, i-1, j-1) : up-left value in t
+            padded[1:, 1:-1, :-2],  # (t, i, j-1) : up value in t
+            padded[1:, :-2, 1:-1]]   # (t, i-1, j) : left value in t
+        context = torch.stack(slices, dim=-1)
         return context.reshape(-1, 6), context_array.reshape(-1, 1)
 
 ### basic test
