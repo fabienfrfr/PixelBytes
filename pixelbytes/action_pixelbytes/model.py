@@ -24,34 +24,35 @@ class TokenizedDataset(Dataset):
         self._preprocess_data(data, tokenizer)
 
     def _preprocess_data(self, data, tokenizer):
-        for item in data :
+        for item in data:
             tokenized = tokenizer(text=item.get('text'),
                                   image=item.get('image'),
                                   audio=item.get('audio'))
             self.tokenized_data.append(tokenized)
-        self._calculate_total_sequences()
+        self.total_sequences = sum(self.get_num_sequences(item) for item in self.tokenized_data)
 
-    def _calculate_total_sequences(self):
-        self.total_sequences = sum(max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
-                                   for item in self.tokenized_data)
     def __len__(self):
         return self.total_sequences
 
     def __getitem__(self, idx):
+        idx = idx % self.total_sequences
         item_idx, start_idx = self._get_item_and_start_indices(idx)
         tokenized = self.tokenized_data[item_idx]
         end_idx = start_idx + self.seq_length
-        return {'input_ids': torch.as_tensor(tokenized['input_ids'][start_idx:end_idx], dtype=torch.long),
-                'labels': torch.as_tensor(tokenized['labels'][start_idx:end_idx], dtype=torch.long)}
+
+        input_ids = tokenized['input_ids'][start_idx:end_idx % len(tokenized['input_ids'])]
+        labels = tokenized['labels'][start_idx:end_idx % len(tokenized['labels'])]
+        return {'input_ids': torch.as_tensor(input_ids, dtype=torch.long), 'labels': torch.as_tensor(labels, dtype=torch.long)}
 
     def _get_item_and_start_indices(self, idx):
         for i, item in enumerate(self.tokenized_data):
-            num_sequences = max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
+            num_sequences = self.get_num_sequences(item)
             if idx < num_sequences:
-                return i, idx * self.stride
+                start_idx = (idx * self.stride) % len(item['input_ids'])
+                return i, start_idx
             idx -= num_sequences
         raise IndexError("Index out of range")
-    
+
     def get_num_sequences(self, item):
         return max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
 
