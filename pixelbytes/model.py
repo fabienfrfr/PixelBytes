@@ -110,21 +110,6 @@ class aPxBySequenceModel(PreTrainedModel):
         self.eval()
         with torch.no_grad():
             current_input = input_ids.clone()
-            for i in range(num_generate):
-                outputs = self(current_input)
-                next_token = torch.multinomial(
-                    torch.softmax(outputs[:, -1, -1] if self.AR else outputs[:, -1] / temperature, dim=-1),
-                    num_samples=1)
-                if self.AR:
-                    current_input = torch.cat([current_input, next_token.unsqueeze(1).unsqueeze(1)], dim=2)
-                else:
-                    current_input[:, -(i+1)] = next_token.squeeze(-1)
-            return current_input
-
-    def generate(self, input_ids, num_generate, temperature=1.0):
-        self.eval()
-        with torch.no_grad():
-            current_input = input_ids.clone()
             for i in range(num_generate): # Generate next token
                 outputs = self(current_input)
                 next_token = torch.multinomial(
