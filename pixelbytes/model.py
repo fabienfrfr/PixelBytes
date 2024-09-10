@@ -25,12 +25,15 @@ class TokenPxByDataset(Dataset):
         self._preprocess_data(data, tokenizer)
 
     def _preprocess_data(self, data, tokenizer):
+        self.total_sequences = 0
         for item in data:
             tokenized = tokenizer(text=item.get('text'),
                                   image=item.get('image'),
                                   audio=item.get('audio'))
-            self.tokenized_data.append(tokenized)
-        self.total_sequences = sum(self.get_num_sequences(item) for item in self.tokenized_data)
+            length = len(tokenized['input_ids'])
+            num_sequences = max(1, (length - self.seq_length) // self.stride + 1)
+            self.tokenized_data.append((tokenized, length, num_sequences))
+            self.total_sequences += num_sequences
 
     def __len__(self):
         return self.total_sequences
@@ -38,24 +41,21 @@ class TokenPxByDataset(Dataset):
     def __getitem__(self, idx):
         idx = idx % self.total_sequences
         item_idx, start_idx = self._get_item_and_start_indices(idx)
-        tokenized = self.tokenized_data[item_idx]
+        tokenized, length, _ = self.tokenized_data[item_idx]
         end_idx = start_idx + self.seq_length
 
-        input_ids = tokenized['input_ids'][start_idx:end_idx % len(tokenized['input_ids'])]
-        labels = tokenized['labels'][start_idx:end_idx % len(tokenized['labels'])]
-        return {'input_ids': torch.as_tensor(input_ids, dtype=torch.long), 'labels': torch.as_tensor(labels, dtype=torch.long)}
+        input_ids = tokenized['input_ids'][start_idx:end_idx % length]
+        labels = tokenized['labels'][start_idx:end_idx % length]
+        return {'input_ids': torch.as_tensor(input_ids, dtype=torch.long), 
+                'labels': torch.as_tensor(labels, dtype=torch.long)}
 
     def _get_item_and_start_indices(self, idx):
-        for i, item in enumerate(self.tokenized_data):
-            num_sequences = self.get_num_sequences(item)
+        for i, (_, _, num_sequences) in enumerate(self.tokenized_data):
             if idx < num_sequences:
-                start_idx = (idx * self.stride) % len(item['input_ids'])
+                start_idx = (idx * self.stride) % self.tokenized_data[i][1]
                 return i, start_idx
             idx -= num_sequences
         raise IndexError("Index out of range")
-
-    def get_num_sequences(self, item):
-        return max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
 
 def collate_fn(batch):
     input_ids = [item['input_ids'] for item in batch]
