@@ -145,12 +145,11 @@ class aPxBySequenceModel(PreTrainedModel):
             for i, batch in enumerate(tqdm(dataloader, desc="Training" if is_training else "Evaluating")):
                 input_ids, labels = batch['input_ids'].to(device), batch['labels'].to(device)
                 with torch.amp.autocast(device_type='cuda', enabled=scaler is not None):
-                    outputs = self(input_ids)
                     if self.AR: # Reshape and shift for autoregressive mode
-                        outputs = outputs[:, :-1].contiguous().view(-1, self.config.vocab_size)
+                        outputs = self(input_ids[:, :-1]).contiguous().view(-1, self.config.vocab_size)
                         target = input_ids[:, 1:].contiguous().view(-1)
                     else: # Flatten outputs and use labels as target for non-autoregressive mode
-                        outputs = outputs.view(-1, self.config.vocab_size)
+                        outputs = self(input_ids).view(-1, self.config.vocab_size)
                         target = labels.view(-1)
                     loss = criterion(outputs, target)
                     if is_training:
