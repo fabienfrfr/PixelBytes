@@ -12,13 +12,15 @@ import numpy as np
 from scipy.spatial import cKDTree
 from scipy import stats
 
-## Bytes (ASCII - UTF8)
+## Bytes (ASCII - UTF8) 
+#DEFAULT_BYTES = sorted(set(bytes(c, 'ascii') for c in re.findall(r'[\x00-\x20\x22-\x2f\x30-\x39a-z]', ''.join(map(chr, range(256))))))
 DEFAULT_BYTES = [b'\x00', b'\t', b'\n', b' ', b'"', b"'", b'(', b')', b'*', b',', b'-', b'+', 
                 b'.', b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'\xc2', 
                 b'\xa0', b':', b'[', b']', b';', b'/', b'%', b'!', b'a', b'b', b'c', b'd', b'e', 
                 b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', 
                 b's', b't', b'u', b'v', b'w', b'x', b'y', b'z']
-## Pixel (RGB NES Palette)
+## Pixel (RGB NES Palette) 
+#DEFAULT_PALETTE = [tuple(int(255*c) for c in colorsys.hsv_to_rgb(h/10,s,v)) for h in range(10) for s in [1,.7] for v in [1,.7,.4]][:50]+[(0,0,0),(252,252,252),(248,248,248),(188,188,188),(120,120,120)]
 DEFAULT_PALETTE = [(0x00, 0x00, 0x00), (0xfc, 0xfc, 0xfc), (0xf8, 0xf8, 0xf8), (0xbc, 0xbc, 0xbc),
                     (0x7c, 0x7c, 0x7c), (0xa4, 0xe4, 0xfc), (0x3c, 0xbc, 0xfc), (0x00, 0x78, 0xf8),
                     (0x00, 0x00, 0xfc), (0xb8, 0xb8, 0xf8), (0x68, 0x88, 0xfc), (0x00, 0x58, 0xf8),

@@ -13,10 +13,11 @@ from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 import numpy as np, pandas as pd
 from transformers import PreTrainedModel, PretrainedConfig
-from torch.cuda.amp import autocast, GradScaler
-import torch.nn.functional as F
+from mambapy.mamba import Mamba, MambaConfig
+from torch.cuda.amp import GradScaler
 
-class TokenizedDataset(Dataset):
+## Data Part
+class TokenPxByDataset(Dataset):
     def __init__(self, data, tokenizer, seq_length=1024, stride=512):
         self.seq_length = seq_length
         self.stride = stride
@@ -81,32 +82,44 @@ def collate_fn(batch):
     
     return {'input_ids': input_ids_padded,'labels': labels_padded}
 
-class ModelConfig_(PretrainedConfig):
-    model_type = "lstm"
-    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, auto_regressive=False, **kwargs):
+## Model and training
+class ModelConfig(PretrainedConfig):
+    model_type = "hybrid"
+    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, 
+                 auto_regressive=False, model_type="lstm", d_conv=4,expand=2,**kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
-        self.embed_size = embed_size
-        self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.pxby_dim = pxby_dim
+        self.pxby_emb = embed_size // self.pxby_dim
+        self.embed_size = int(self.pxby_emb * self.pxby_dim)
         self.AR = auto_regressive
+        self.model_type = model_type
+        self.hidden_size = self.d_state = hidden_size
+        # Mamba specific attributes
+        self.d_conv = d_conv
+        self.expand = expand
+    def get_mamba_config(self):
+        return MambaConfig(d_model=self.embed_size, n_layers=self.num_layers, 
+                           d_state=self.d_state, d_conv=self.d_conv, expand_factor=self.expand)
 
-class BestPreTrainedModel(PreTrainedModel):
-    config_class = ModelConfig_
-    base_model_prefix = "lstm"
+class aPxBySequenceModel(PreTrainedModel):
+    config_class = ModelConfig
+    base_model_prefix = "hybrid"
 
     def __init__(self, config):
         super().__init__(config)
-        self.embedding = nn.Embedding(config.vocab_size, config.embed_size, padding_idx=0)
-        self.lstm = nn.LSTM(config.embed_size * config.pxby_dim, config.hidden_size, config.num_layers, batch_first=True)
+        self.embedding = nn.Embedding(config.vocab_size, config.pxby_emb, padding_idx=0)
+        if config.model_type == "mamba": self.sequence_model = Mamba(config.get_mamba_config())
+        else: self.sequence_model = nn.LSTM(config.embed_size, config.hidden_size, config.num_layers, batch_first=True)
         self.fc = nn.Linear(config.hidden_size, config.vocab_size * (config.pxby_dim if config.AR else 1))
-        self.pxby_dim, self.AR = config.pxby_dim, config.AR
+        self.pxby_dim, self.AR, self.model_type = config.pxby_dim, config.AR, config.model_type
 
     def forward(self, input_ids):
         batch_size, seq_len, _ = input_ids.shape
         embedded = self.embedding(input_ids).view(batch_size, seq_len, -1)
-        output, _ = self.lstm(embedded)
+        if self.model_type == "mamba": output = self.sequence_model(embedded)
+        else: output, _ = self.sequence_model(embedded)
         output = self.fc(output) # Shape: (batch_size, seq_len, vocab_size*pxby) or (batch_size, seq_len, vocab_size)
         return output.view(batch_size, seq_len, self.pxby_dim, -1) if self.AR else output
 
@@ -186,7 +199,7 @@ class BestPreTrainedModel(PreTrainedModel):
         return total_loss / len(dataloader), total_correct / total_samples
 
     def save_model(self, is_best=False):
-        save_dir = os.path.join(os.getcwd(), f"{self.base_model_prefix}_{'autoregressive' if self.AR else 'predictive'}_{('best' if is_best else 'last')}")
+        save_dir = os.path.join(os.getcwd(), f"{self.model_type}_{'autoregressive' if self.AR else 'predictive'}_{('best' if is_best else 'last')}")
         os.makedirs(save_dir, exist_ok=True)
         self.save_pretrained(save_dir)
         print(f"Model saved to {save_dir}")
@@ -211,6 +224,7 @@ if __name__ == '__main__':
     NUM_LAYERS = 2
     PXBY_DIM = 6 # tokenizer
     AR = False
+    MODEL_TYPE = "lstm"
     BATCH_SIZE = 32
     EPOCHS = 10
     LEARNING_RATE = 0.001
@@ -220,14 +234,14 @@ if __name__ == '__main__':
     STRIDE = 512
     
     # Initialisation du modèle
-    config = ModelConfig_(vocab_size=VOCAB_SIZE, embed_size=EMBED_SIZE, hidden_size=HIDDEN_SIZE, 
-                          num_layers=NUM_LAYERS, pxby_dim=PXBY_DIM, auto_regressive=AR)
-    model = BestPreTrainedModel(config).to(DEVICE)
+    config = ModelConfig(vocab_size=VOCAB_SIZE, embed_size=EMBED_SIZE, hidden_size=HIDDEN_SIZE, 
+                          num_layers=NUM_LAYERS, pxby_dim=PXBY_DIM, auto_regressive=AR, model_type=MODEL_TYPE)
+    model = aPxBySequenceModel(config).to(DEVICE)
     print(f"Le modèle a {count_parameters_in_k(model):.2f}k paramètres entraînables.")
 
     # Préparation des données
     def dataloading(ds):
-        dataset = TokenizedDataset(ds, tokenizer, SEQ_LENGTH, STRIDE)
+        dataset = TokenPxByDataset(ds, tokenizer, SEQ_LENGTH, STRIDE)
         sampler = ShuffledSampler(dataset, seed=42)
         return DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn, sampler=sampler)
     train_dataloader, val_dataloader = dataloading(train_ds), dataloading(val_ds)
