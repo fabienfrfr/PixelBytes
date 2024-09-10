@@ -57,22 +57,6 @@ class TokenPxByDataset(Dataset):
     def get_num_sequences(self, item):
         return max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
 
-class ShuffledSampler(Sampler):
-    def __init__(self, data_source, seed=None):
-        self.data_source = data_source
-        self.seed = seed
-        self.indices = list(range(len(data_source)))
-        
-    def __iter__(self):
-        if self.seed is not None:
-            random.seed(self.seed)
-        random.shuffle(self.indices)
-        for idx in self.indices:
-            yield idx
-
-    def __len__(self):
-        return len(self.data_source)
-
 def collate_fn(batch):
     input_ids = [item['input_ids'] for item in batch]
     labels = [item['labels'] for item in batch]
@@ -241,8 +225,7 @@ if __name__ == '__main__':
     # Préparation des données
     def dataloading(ds):
         dataset = TokenPxByDataset(ds, tokenizer, SEQ_LENGTH, STRIDE)
-        sampler = ShuffledSampler(dataset, seed=42)
-        return DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn, sampler=sampler)
+        return DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn, shuffle=True)
     train_dataloader, val_dataloader = dataloading(train_ds), dataloading(val_ds)
 
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
