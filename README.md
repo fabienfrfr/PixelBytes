@@ -12,6 +12,7 @@ Requires Python 3.8+. Install via PyPI:
 
    pip install git+https://github.com/fabienfrfr/PixelBytes.git@main
 
+
 Overview
 --------
 
@@ -27,14 +28,18 @@ The model seamlessly manages transitions between modalities and maintains dimens
 Usage
 -----
 
-Basic commands (see old version) :
+Basic commands :
 
 .. code-block:: bash
 
-   python -m your_package.main build --path /path/to/dataset
-   python -m your_package.main train --model rnn --learning-rate 0.0001
-   python -m your_package.main evaluate --metrics accuracy
-   python -m your_package.main generate --format png
+    tokenizer = ActionPixelBytesTokenizer(data_slicing=DATA_REDUCTION)
+    config = ModelConfig(vocab_size=VOCAB_SIZE, embed_size=EMBED_SIZE, hidden_size=HIDDEN_SIZE, 
+                          num_layers=NUM_LAYERS, pxby_dim=PXBY_DIM, auto_regressive=AR, model_type=MODEL_TYPE)
+    model = aPxBySequenceModel(config).to(DEVICE)
+    dataset = TokenPxByDataset(ds, tokenizer, SEQ_LENGTH, STRIDE)
+    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn, shuffle=True)
+    model.train_model(train_dataloader, val_dataloader, optimizer, criterion, DEVICE, scaler, EPOCHS, ACCUMULATION_STEPS)
+
 
 For detailed documentation, see the `docs folder <docs/>`_.
 
