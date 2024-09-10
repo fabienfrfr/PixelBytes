@@ -84,14 +84,13 @@ def collate_fn(batch):
 
 ## Model and training
 class ModelConfig(PretrainedConfig):
-    model_type = "hybrid"
     def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, 
                  auto_regressive=False, model_type="lstm", d_conv=4,expand=2,**kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.pxby_dim = pxby_dim
-        self.pxby_emb = embed_size // self.pxby_dim
+        self.pxby_emb = embed_size // (self.pxby_dim * (expand if model_type=="mamba" else 1))
         self.embed_size = int(self.pxby_emb * self.pxby_dim)
         self.AR = auto_regressive
         self.model_type = model_type
