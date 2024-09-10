@@ -32,7 +32,7 @@ Usage
 
 Basic commands :
 
-.. code-block:: bash
+.. code-block:: python
 
     tokenizer = ActionPixelBytesTokenizer(data_slicing=DATA_REDUCTION)
     config = ModelConfig(vocab_size=VOCAB_SIZE, embed_size=EMBED_SIZE, hidden_size=HIDDEN_SIZE, 
