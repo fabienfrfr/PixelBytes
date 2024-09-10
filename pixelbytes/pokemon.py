@@ -4,118 +4,148 @@
 @author: fabienfrfr
 """
 
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
-
-from .dataset import image_pixelization
-
-from datasets import load_dataset, Dataset
-import io, os, getpass
-from huggingface_hub import HfApi, login
-#from transformers import pipeline
-
-from PIL import Image
-import cv2, re, unicodedata
-import requests, pandas as pd
+import os, re, shutil, requests
+import numpy as np, pandas as pd
 from bs4 import BeautifulSoup
-import numpy as np, pylab as plt
+from scipy import signal
+import soundfile as sf #import librosa
+from datasets import load_dataset, Dataset, Features, Value, Image, Audio
+from huggingface_hub import login
 
+class PokemonSpriteDownloader:
+    BASE_URL = "https://www.pokencyclopedia.info"
+    SPRITE_URLS = {'front': f"{BASE_URL}/en/index.php?id=sprites/gen5/ani_black-white",
+                   'back': f"{BASE_URL}/en/index.php?id=sprites/gen5/ani-b_black-white" }
 
-def get_pkmns_miniatures():
-    url = "https://www.pokepedia.fr/Liste_des_Pok%C3%A9mon_dans_l%27ordre_du_Pok%C3%A9dex_National"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-    response = requests.get(url, headers=headers)
-    print(f"Status Code: {response.status_code}")
-    soup = BeautifulSoup(response.content, 'html.parser')
-    pokemon_miniatures = {}
-    # Find line in table
-    rows = soup.find_all('tr')
-    for row in rows:
-        cells = row.find_all('td')
-        if len(cells) >= 3:  # Assurez-vous qu'il y a suffisamment de cellules
-            number_cell, image_cell, name_cell = cells[0], cells[1], cells[3] # English version
-            if number_cell.text.strip().isdigit():
-                number = number_cell.text.strip().zfill(4)
-                name = name_cell.text.strip()
-                img = image_cell.find('img')
-                if img and 'src' in img.attrs:
-                    image_url = "https://www.pokepedia.fr" + img['src'] if img['src'].startswith('/') else img['src']
-                    pokemon_miniatures[number] = {'name': name, 'url': image_url}
-    return pokemon_miniatures
+    def download_sprites(self, sprite_type='front'):
+        # Create a folder for the sprites
+        folder_name = f"pokemon_{sprite_type}_gifs"
+        os.makedirs(folder_name, exist_ok=True)
+        # Fetch the webpage and parse it
+        soup = BeautifulSoup(requests.get(self.SPRITE_URLS[sprite_type]).content, 'html.parser')
+        pokemon_data = []
+        # Find all GIF images
+        for gif in soup.find_all('img', src=lambda s: s.endswith('.gif')):
+            gif_url = f"{self.BASE_URL}/{gif['src'].lstrip('/')}"
+            file_name = gif_url.split('/')[-1]
+            pokemon_name = gif.get('alt', 'Unknown').split()[0]
+            # Download the GIF
+            try:
+                response = requests.get(gif_url)
+                response.raise_for_status()
+                with open(os.path.join(folder_name, file_name), 'wb') as file:
+                    file.write(response.content)
+                pokemon_data.append({'Pokemon Name': pokemon_name, 'File Name': file_name})
+                print(f"Downloaded: {file_name}")
+            except requests.RequestException as e:
+                print(f"Error downloading {file_name}: {e}")
+        # Save data to CSV using Pandas
+        pd.DataFrame(pokemon_data).to_csv(f"pokemon_{sprite_type}_data.csv", index=False)
+        print(f"Finished! All {sprite_type} GIFs downloaded and data saved.")
 
-## Caption part
-def get_pkmn_info(pkmn_name):
-    url = f"https://bulbapedia.bulbagarden.net/wiki/{pkmn_name}_(Pokémon)"
-    response = requests.get(url)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, 'html.parser')
-    title = soup.find('h1', {'id': 'firstHeading'}).text.strip() if soup.find('h1', {'id': 'firstHeading'}) else "No head."
-    # Search pkmn biology
-    biology_section = soup.find('span', {'id': 'Biology'})
-    if biology_section:
-        first_paragraph = biology_section.find_parent('h2').find_next_sibling('p')
-        extract = first_paragraph.text.strip() if first_paragraph else "Aucune information trouvée."
-    else:
-        content = soup.find('div', {'id': 'mw-content-text'})
-        extract = content.find('p').text if content and content.find('p') else "No information.."
-    return {"title": title, "extract": extract}
+    def download_all(self):
+        for sprite_type in self.SPRITE_URLS:
+            self.download_sprites(sprite_type)
 
-def simplify_character(text):
-    return re.sub(r'[^\x00-\x7F]', '', unicodedata.normalize('NFKD', text.lower()).encode('ASCII', 'ignore').decode('ASCII'))
+class PokemonCryDownloader:
+    BASE_URL = "https://www.pokepedia.fr/Fichier:Cri_{:04d}_HOME.ogg"
+    DOMAIN = "https://www.pokepedia.fr"
 
-## Image part
-def download_pkmn_miniature(url_pkmn):
-    response = requests.get(url_pkmn)
-    if response.status_code == 200:
-        image_array = np.frombuffer(response.content, np.uint8)
-        img = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-        if img.shape[2] == 4:
-            rgb_channels = img[:, :, :3]
-            alpha_channel = img[:, :, 3] / 255.0
-            # Merge image with white background
-            white_background = np.ones_like(rgb_channels, dtype=np.uint8) * 255
-            img = cv2.convertScaleAbs(rgb_channels * alpha_channel[..., None] + white_background * (1 - alpha_channel[..., None]))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        return image_pixelization(img, palette, max_size=25)
-    else:
-        print(f"Download error")
-        return None
+    def download_cries(self, start=1, end=1010):
+        # Create a folder to store the cries
+        folder_name = "pokemon_cries"
+        os.makedirs(folder_name, exist_ok=True)
+        pokemon_data = []
+        for pokemon_id in range(start, end + 1):
+            url = self.BASE_URL.format(pokemon_id)
+            try:
+                # Fetch the page and find the audio link
+                soup = BeautifulSoup(requests.get(url).content, 'html.parser')
+                audio_link = soup.find('a', {'class': 'internal'})['href']
+                # Correct the URL if it's relative
+                if audio_link.startswith('/'):
+                    audio_link = self.DOMAIN + audio_link
+                file_name = f"cry_{pokemon_id:04d}.ogg"
+                # Download the audio file
+                response = requests.get(audio_link)
+                response.raise_for_status()  # Check if the request was successful
+                with open(os.path.join(folder_name, file_name), 'wb') as file:
+                    file.write(response.content)
+                pokemon_data.append({'Pokemon ID': pokemon_id, 'File Name': file_name})
+                print(f"Downloaded: {file_name}")
+            except Exception as e:
+                print(f"Error for Pokémon {pokemon_id}: {e}")
+        # Save the data to a CSV file
+        pd.DataFrame(pokemon_data).to_csv("pokemon_cries_data.csv", index=False)
+        print("Finished! All cries have been downloaded and data saved.")
 
-def arraybytes_to_png(arr, number):
-    pil_img = Image.fromarray(arr.astype('uint8'))
-    img_file_path = f"data/{number}.png" #img_byte_arr = io.BytesIO()
-    pil_img.save(img_file_path, format='PNG') #pil_img.save(img_byte_arr, format='PNG')
-    return img_file_path # img_byte_arr.getvalue()
+def process_audio(input_file, output_file):
+    # Load audio and ensure it's mono
+    audio, sr = sf.read(input_file)
+    audio = audio.mean(axis=1) if audio.ndim > 1 else audio
+    # Normalize original audio
+    original = audio / np.max(np.abs(audio))
+    # GameBoy parameters
+    gb_rate = 8192
+    # Resample and filter
+    resampled = signal.resample(original, int(len(original) * gb_rate / sr))
+    b, a = signal.butter(4, [100 / (0.5 * gb_rate), 3000 / (0.5 * gb_rate)], btype='band')
+    filtered = signal.lfilter(b, a, resampled)
+    # Resample back to original length
+    processed = signal.resample(filtered, len(original))
+    # Normalize processed audio
+    processed = processed / np.max(np.abs(processed))
+    # Combine original and processed signals
+    stereo = np.column_stack((original, processed))
+    # Save as OGG
+    sf.write(output_file, stereo, sr, format='ogg', subtype='vorbis')
 
-def create_pkmn_dataset(pkmn_dict, image_dir="data"):
-    os.makedirs(image_dir, exist_ok=True)
-    # Init pipeline format (if you caption : not used here // old)
-    #captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
-    # Generate image captionning
-    #names = []
-    captions = []
-    #processed_images = []
-    for number, info in list(pkmn_dict.items())[:]:
-        print(number,info)
-        try :
-            # get img
-            img = download_pkmn_miniature(info['url'])
-            pil_img = Image.fromarray(img.astype('uint8'))
-            # get description [caption = captioner(pil_img)[0]['generated_text']] if not captionned ?
-            soup_info = get_pkmn_info(info['name'])
-            caption = simplify_character(soup_info["extract"])
-            print(info, caption)
-            # merge after verif
-            #names.append(info['name'])
-            captions.append(caption)
-            img_file_path = os.path.join(image_dir, f"{number}.png") #img_byte_arr = io.BytesIO()
-            pil_img.save(img_file_path, format='PNG') #pil_img.save(img_byte_arr, format='PNG')
-            #processed_images.append(img_byte_arr.getvalue())
-        except :
-            print("Pkmn not found...")
-    # Init image dataset
-    dataset = load_dataset("imagefolder", data_dir=image_dir)
-    # Add caption
-    dataset = dataset["train"].add_column("caption", captions)
-    #dataset = dataset.add_column("name", names)
-    return dataset
+def process_all_audio(input_dir, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    for file in sorted(os.listdir(input_dir)):
+        if file.endswith(".ogg"):
+            number = ''.join(filter(str.isdigit, file))
+            process_audio(os.path.join(input_dir, file), os.path.join(output_dir, f"{number}.ogg"))
+    print(f"Processed audio files saved in '{output_dir}'")
+
+def process_move_gifs(input_dir, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    pattern = re.compile(r'ani_bw_(\d+)(?:-[a-z])?.gif')
+    for filename in os.listdir(input_dir):
+        match = pattern.match(filename)
+        if match:
+            new_filename = f"{int(match.group(1)):04d}.gif"
+            shutil.move(os.path.join(input_dir, filename), os.path.join(output_dir, new_filename))
+            print(f"Moved: {filename} -> {new_filename}")
+
+def create_pokemon_csv(dataset_name, output_file='pokemon_data.csv'):
+    dataset = load_dataset(dataset_name)
+    data = [{'Filename': item['image'].filename, 'Caption': item['caption']}for item in dataset['train']]
+    df = pd.DataFrame(data)
+    df.to_csv(output_file, index=False)
+    print(f"CSV file '{output_file}' has been created.")
+
+def create_huggingface_dataset(dataset_dir):
+    # Get file lists
+    images = os.listdir(os.path.join(dataset_dir, "images"))
+    numbers = [os.path.splitext(img)[0] for img in images]
+    numbers.sort(key=lambda x: int(x))
+    # Create data dictionary
+    data = {
+        "number": numbers,
+        "image": [os.path.join(dataset_dir, "images", f"{num}.gif") for num in numbers],
+        "audio": [os.path.join(dataset_dir, "audio", f"{num}.ogg") for num in numbers],
+        "text": [open(os.path.join(dataset_dir, "text", f"{num}.txt"), 'r').read().strip() for num in numbers]
+    }
+    # Create and cast dataset
+    dataset = Dataset.from_dict(data)
+    features = Features({"number": Value("string"), "image": Image(), "audio": Audio(sampling_rate=16000,mono=False), "text": Value("string")})
+    return dataset.cast(features)
+
+def push_dataset_to_hub(dataset, repo_name):
+    # Ask for the Hugging Face token
+    token = input("Please enter your Hugging Face token: ")
+    # Login to Hugging Face with the provided token
+    login(token=token)
+    # Push to Hub
+    dataset.push_to_hub(repo_name)

@@ -4,184 +4,245 @@
 @author: fabienfrfr
 """
 
-import torch, re
+import os
+import torch, random
 import torch.nn as nn
-from huggingface_hub import HfApi, create_repo, whoami
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader, Sampler
+from torch.nn.utils.rnn import pad_sequence
+from tqdm import tqdm
+import numpy as np, pandas as pd
 from transformers import PreTrainedModel, PretrainedConfig
-from dataclasses import dataclass
+from torch.cuda.amp import autocast, GradScaler
+import torch.nn.functional as F
 
-try :
-    from mamba_ssm.modules.mamba_simple import Mamba
-except :
-    print('[INFO] Official mamba_ssm CUDA modules not found. Falling back to an unofficial implementation. Performance may be affected.')
-    import mambapy.mamba as mambapy
-    def Mamba(d_model, d_state, d_conv, expand) :
-        config = mambapy.MambaConfig(d_model, d_state, d_conv, expand)
-        return mambapy.Mamba(config) ## doesnt works.. need to change prefix and state_dict..
+class TokenizedDataset(Dataset):
+    def __init__(self, data, tokenizer, seq_length=1024, stride=512):
+        self.seq_length = seq_length
+        self.stride = stride
+        self.tokenized_data = []
+        self._preprocess_data(data, tokenizer)
 
-### Multimodal embedding        
-class PxByEmbed(nn.Module):
-    def __init__(self, vocab_size, dim, is_pemb=True, k=3):
-        super().__init__()
-        self.d_model, self.k = dim, k
-        self.e_model = max(9, dim // (k**2))
-        self.is_p_embed = is_pemb
-        # Spatially adaptive embedding combination
-        self.alpha = nn.Parameter(torch.rand(1, 1, k, k))
-        self.projection = nn.Linear(self.e_model * k * k, dim)
-        # Final normalization
-        self.norm = nn.LayerNorm(dim)
-        # Classic text embedding
-        self.linear_embedding = nn.Embedding(vocab_size, self.e_model)
-        # Local embedding patch
-        self.patch_embedding = nn.Conv2d(in_channels=self.e_model, out_channels=self.e_model, 
-                                         kernel_size=k, stride=1, padding=k//2) if is_pemb else None
-    def forward(self, x):
-        # shape : x : (B, L, M=k, N=k) : long
-        B, L, M, N = x.shape
-        assert M == N == self.k, f"Input spatial dimensions should be {self.k}x{self.k}, but got {M}x{N}"
-        # Linear embedding
-        x = self.linear_embedding(x.view(B*L, M, N))  # (B*L, M, N, e_model)
-        x = x.permute(0, 3, 1, 2)  # (B*L, e_model, M, N)
-        # Combine linear (and patch) embedding with alpha
-        if not(self.is_p_embed): x = torch.sigmoid(self.alpha) * x  # (B*L, e_model, M, N)
-        else: x = torch.sigmoid(self.alpha) * x + (1 - torch.sigmoid(self.alpha)) * self.patch_embedding(x) 
-        # Flatten and project
-        x = x.reshape(B*L, -1)  # (B*L, e_model*M*N)
-        x = self.projection(x)  # (B*L, dim)
-        # Final normalization
-        x = self.norm(x)
-        return x.view(B, L, -1)  # (B, L, dim)
+    def _preprocess_data(self, data, tokenizer):
+        for item in data:
+            tokenized = tokenizer(text=item.get('text'),
+                                  image=item.get('image'),
+                                  audio=item.get('audio'))
+            self.tokenized_data.append(tokenized)
+        self.total_sequences = sum(self.get_num_sequences(item) for item in self.tokenized_data)
 
-### Main model
-@dataclass
-class ModelConfig(PretrainedConfig):
-    dim : int #81 # The input dimension of the input tensor. (embedding dim output)
-    model_type: str = "sequence-generator"
-    pembed : bool = True # convolutionnal embedding
-    pxby_embed : bool = True # PixelBytes or only center sequence
-    bidirectional : bool = True # For RNN or SSM model
-    d_state: int = 64 # The dimension of the state space model (or hidden state for RNN)
-    d_conv : int = 4 # The convolutionnal windows
-    expand: int = 2 # E in paper/comments
-    depth : int = 2 # The number of residual layers
-    vocab_size : int = 113 # ASCII bytes + NES Pixel
-    
-    def __init__(self, dim: int = None, **kwargs):
-        super().__init__(**kwargs)
-        if dim is not None:
-            self.dim = dim
+    def __len__(self):
+        return self.total_sequences
+
+    def __getitem__(self, idx):
+        idx = idx % self.total_sequences
+        item_idx, start_idx = self._get_item_and_start_indices(idx)
+        tokenized = self.tokenized_data[item_idx]
+        end_idx = start_idx + self.seq_length
+
+        input_ids = tokenized['input_ids'][start_idx:end_idx % len(tokenized['input_ids'])]
+        labels = tokenized['labels'][start_idx:end_idx % len(tokenized['labels'])]
+        return {'input_ids': torch.as_tensor(input_ids, dtype=torch.long), 'labels': torch.as_tensor(labels, dtype=torch.long)}
+
+    def _get_item_and_start_indices(self, idx):
+        for i, item in enumerate(self.tokenized_data):
+            num_sequences = self.get_num_sequences(item)
+            if idx < num_sequences:
+                start_idx = (idx * self.stride) % len(item['input_ids'])
+                return i, start_idx
+            idx -= num_sequences
+        raise IndexError("Index out of range")
+
+    def get_num_sequences(self, item):
+        return max(1, (len(item['input_ids']) - self.seq_length) // self.stride + 1)
+
+class ShuffledSampler(Sampler):
+    def __init__(self, data_source, seed=None):
+        self.data_source = data_source
+        self.seed = seed
+        self.indices = list(range(len(data_source)))
         
-class bMamba(PreTrainedModel):
-    config_class = ModelConfig
-    base_model_prefix = "simple_ssm"
+    def __iter__(self):
+        if self.seed is not None:
+            random.seed(self.seed)
+        random.shuffle(self.indices)
+        for idx in self.indices:
+            yield idx
+
+    def __len__(self):
+        return len(self.data_source)
+
+def collate_fn(batch):
+    input_ids = [item['input_ids'] for item in batch]
+    labels = [item['labels'] for item in batch]
     
-    def __init__(self, config: ModelConfig):
-        super(bMamba, self).__init__(config)
-        self.name = "ssm"
-        self.bidirectional, self.pxby = config.bidirectional, config.pxby_embed
-        self.embedding = PxByEmbed(config.vocab_size, config.dim, config.pembed) if self.pxby else nn.Embedding(config.vocab_size, config.dim)
-        # First Mamba layer (bidirectional or not based on config)
-        self._mamba = Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand)
-        # Remaining Mamba layers
-        self.layers = nn.ModuleList([
-            Mamba(d_model=config.dim, d_state=config.d_state, d_conv=config.d_conv, expand=config.expand)
-            for _ in range(config.depth - 1)
-        ]) if config.depth > 1 else None
-        self.norm = nn.LayerNorm(config.dim) if config.bidirectional else None
-        self.lm_head = nn.Linear(config.dim, config.vocab_size, bias=False)
-
-    def forward(self, x):
-        x = self.embedding(x) if self.pxby else self.embedding(x[:,:,1,1])
-        # Bidirectional Mamba for the first layer
-        if self.bidirectional: x = self.norm(self._mamba(x) + self._mamba(torch.flip(x, dims=[1])).flip([1]))
-        else: x = self._mamba(x)
-        # Remaining Mamba layers
-        if self.layers:
-            for layer in self.layers: x = layer(x)
-        return self.lm_head(x[:, -1, :])
-
-### Comparizon model
-# simple lstm (like simplified PixelRNN)
-class SimpleRNNModel(PreTrainedModel):
-    config_class = ModelConfig
-    base_model_prefix = "simple_rnn"
+    input_ids_padded = pad_sequence(input_ids, batch_first=True, padding_value=0)
+    labels_padded = pad_sequence(labels, batch_first=True, padding_value=-100)
     
-    def __init__(self, config: ModelConfig):
-        super(SimpleRNNModel, self).__init__(config)
-        self.name = "rnn"
-        self.pxby = config.pxby_embed
-        self.embedding = PxByEmbed(config.vocab_size, config.dim, config.pembed) if self.pxby else nn.Embedding(config.vocab_size, config.dim)
-        # First LSTM layer (bidirectional or not based on config)
-        self._lstm = nn.LSTM(input_size=config.dim,
-            hidden_size=config.d_state // (2 if config.bidirectional else 1),
-            num_layers=1,batch_first=True,bidirectional=config.bidirectional)
-        # Remaining LSTM layers (if any)
-        input_size = config.d_state if config.bidirectional else config.d_state // 2
-        self.lstm = nn.LSTM(input_size=config.d_state,hidden_size=config.d_state, 
-            num_layers=config.depth - 1, batch_first=True) if config.depth > 1 else None
-        # Fully connected layer
-        self.fc = nn.Linear(config.d_state, config.vocab_size)
+    return {'input_ids': input_ids_padded,'labels': labels_padded}
 
-    def forward(self, x):
-        x = self.embedding(x) if self.pxby else self.embedding(x[:,:,1,1])
-        x = self._lstm(x)[0]
-        x = x if self.lstm is None else self.lstm(x)[0]
-        return self.fc(x[:, -1, :])
+class ModelConfig_(PretrainedConfig):
+    model_type = "lstm"
+    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, auto_regressive=False, **kwargs):
+        super().__init__(**kwargs)
+        self.vocab_size = vocab_size
+        self.embed_size = embed_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.pxby_dim = pxby_dim
+        self.AR = auto_regressive
 
+class BestPreTrainedModel(PreTrainedModel):
+    config_class = ModelConfig_
+    base_model_prefix = "lstm"
 
-# simple attention (like VERY simplified GPeT)
-class SimpleTransformerModel(PreTrainedModel):
-    config_class = ModelConfig
-    base_model_prefix = "simple_transformer"
+    def __init__(self, config):
+        super().__init__(config)
+        self.embedding = nn.Embedding(config.vocab_size, config.embed_size, padding_idx=0)
+        self.lstm = nn.LSTM(config.embed_size * config.pxby_dim, config.hidden_size, config.num_layers, batch_first=True)
+        self.fc = nn.Linear(config.hidden_size, config.vocab_size * (config.pxby_dim if config.AR else 1))
+        self.pxby_dim, self.AR = config.pxby_dim, config.AR
+
+    def forward(self, input_ids):
+        batch_size, seq_len, _ = input_ids.shape
+        embedded = self.embedding(input_ids).view(batch_size, seq_len, -1)
+        output, _ = self.lstm(embedded)
+        output = self.fc(output) # Shape: (batch_size, seq_len, vocab_size*pxby) or (batch_size, seq_len, vocab_size)
+        return output.view(batch_size, seq_len, self.pxby_dim, -1) if self.AR else output
+
+    def generate(self, input_ids, num_generate, temperature=1.0):
+        self.eval()
+        with torch.no_grad():
+            current_input = input_ids.clone()
+            for i in range(num_generate):
+                outputs = self(current_input)
+                next_token = torch.multinomial(
+                    torch.softmax(outputs[:, -1, -1] if self.AR else outputs[:, -1] / temperature, dim=-1),
+                    num_samples=1)
+                if self.AR:
+                    current_input = torch.cat([current_input, next_token.unsqueeze(1).unsqueeze(1)], dim=2)
+                else:
+                    current_input[:, -(i+1)] = next_token.squeeze(-1)
+            return current_input
+
+    def generate(self, input_ids, num_generate, temperature=1.0):
+        self.eval()
+        with torch.no_grad():
+            current_input = input_ids.clone()
+            for i in range(num_generate): # Generate next token
+                outputs = self(current_input)
+                next_token = torch.multinomial(
+                    torch.softmax(outputs[:, -1, -1] if self.AR else outputs[:, -1] / temperature, dim=-1),
+                    num_samples=1)
+                if self.AR: current_input = torch.cat([current_input, next_token.unsqueeze(1).unsqueeze(1)], dim=2) # true generator
+                else: current_input[:, -(i+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
+            return current_input
+
+    def train_model(self, train_dataloader, val_dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4, eval_every=5):
+        best_loss = float('inf')
+        val_loss, val_accuracy = self._process_epoch(val_dataloader, None, criterion, device, None, accumulation_steps)
+        metrics = [{'epoch': 0,'train_loss': val_loss,'train_accuracy': val_accuracy, 'val_loss': val_loss, 'val_accuracy': val_accuracy}]
+        print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
+        for epoch in range(epochs):
+            train_loss, train_accuracy = self._process_epoch(train_dataloader, optimizer, criterion, device, scaler, accumulation_steps)
+            print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.4f}")
+            if (epoch + 1) % eval_every == 0 or epoch == epochs - 1:
+                val_loss, val_accuracy = self._process_epoch(val_dataloader, None, criterion, device, None, accumulation_steps)
+                metrics.append({'epoch': epoch + 1,'train_loss': train_loss,'train_accuracy': train_accuracy, 'val_loss': val_loss, 'val_accuracy': val_accuracy})
+                print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
+                if val_loss < best_loss:
+                    best_loss = val_loss
+                    self.save_model(is_best=True)
+        self.save_model(is_best=False)
+        df_metrics = pd.DataFrame(metrics); df_metrics.to_csv('training_metrics.csv', index=False)
+        
+    def _process_epoch(self, dataloader, optimizer, criterion, device, scaler, accumulation_steps):
+        is_training = optimizer is not None
+        self.train(is_training)
+        total_loss = total_correct = total_samples = 0
+        with torch.set_grad_enabled(is_training):
+            for i, batch in enumerate(tqdm(dataloader, desc="Training" if is_training else "Evaluating")):
+                input_ids, labels = batch['input_ids'].to(device), batch['labels'].to(device)
+                with torch.amp.autocast(device_type='cuda', enabled=scaler is not None):
+                    outputs = self(input_ids)
+                    if self.AR: # Reshape and shift for autoregressive mode
+                        outputs = outputs[:, :-1].contiguous().view(-1, self.config.vocab_size)
+                        target = input_ids[:, 1:].contiguous().view(-1)
+                    else: # Flatten outputs and use labels as target for non-autoregressive mode
+                        outputs = outputs.view(-1, self.config.vocab_size)
+                        target = labels.view(-1)
+                    loss = criterion(outputs, target)
+                    if is_training:
+                        loss = loss / accumulation_steps
+                if is_training:
+                    (scaler.scale(loss) if scaler else loss).backward()
+                    if (i + 1) % accumulation_steps == 0:
+                        (scaler.step(optimizer) if scaler else optimizer.step())
+                        (scaler.update() if scaler else None)
+                        optimizer.zero_grad()
+                total_loss += loss.item() * (accumulation_steps if is_training else 1)
+                total_correct += (outputs.view(-1, outputs.size(-1)).argmax(-1) == target.view(-1)).sum().item()
+                total_samples += target.numel()
+        return total_loss / len(dataloader), total_correct / total_samples
+
+    def save_model(self, is_best=False):
+        save_dir = os.path.join(os.getcwd(), f"{self.base_model_prefix}_{'autoregressive' if self.AR else 'predictive'}_{('best' if is_best else 'last')}")
+        os.makedirs(save_dir, exist_ok=True)
+        self.save_pretrained(save_dir)
+        print(f"Model saved to {save_dir}")
+
+if __name__ == '__main__':
+    from tokenizer import ActionPixelBytesTokenizer
+    from datasets import load_dataset
     
-    def __init__(self, config: ModelConfig):
-        super(SimpleTransformerModel, self).__init__(config)
-        self.name = "attention"
-        self.pxby = config.pxby_embed
-        self.num_heads = 4  # to adjust
-        self.num_layers = config.depth
-        self.vocab = config.vocab_size
-        self.embedding_dim = (config.dim // self.num_heads) * self.num_heads
-        # Embedding
-        self.embedding = PxByEmbed(config.vocab_size, self.embedding_dim, config.pembed) if self.pxby else nn.Embedding(config.vocab_size, self.embedding_dim)
-        # Transformer 
-        encoder_layer = nn.TransformerEncoderLayer(d_model=self.embedding_dim, 
-                                                   nhead=self.num_heads,
-                                                   dim_feedforward=4 * self.embedding_dim, batch_first=True)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer,num_layers=self.num_layers)
-        # Output layer
-        self.fc = nn.Linear(self.embedding_dim, self.vocab)
+    def count_parameters_in_k(model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad) / 1000
 
-    def forward(self, x):
-        # x shape: [batch_size, seq_length, 3, 3]
-        x = self.embedding(x) if self.pxby else self.embedding(x[:,:,1,1])
-        # Apply transformer encoder
-        x = self.transformer_encoder(x)
-        # Use the last token's representation for classification
-        return self.fc(x[:, -1, :])
-
-
-### save model function
-def push_model_to_hub(repo_name, model_dir, token, subfolder=None):
-    api = HfApi(token=token)
-    subfolder = re.sub(r'[^a-zA-Z0-9]+', '_', subfolder).strip('_').lower()
-
-    try:
-        create_repo(repo_name, token=token, repo_type="model", exist_ok=True)
-        username = whoami(token=token)['name']
-        repo_id = f"{username}/{repo_name}"
-        print(f"Repository '{repo_id}' created or already exists.")
-    except Exception as e:
-        print(f"Error creating repository: {e}")
-        return
+    hf_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")['train'].train_test_split(test_size=0.1, seed=42)
+    train_ds, val_ds = hf_dataset['train'], hf_dataset['test']
     
-    api.upload_folder(
-        folder_path=model_dir,
-        repo_id=repo_id,
-        repo_type="model",
-        path_in_repo=subfolder,
-        ignore_patterns=[".*"],  # Ignorer les fichiers cachés
-        create_pr=False  # Créer directement dans la branche principale
-    )
-    print(f"Model pushed successfully to {repo_name}, subfolder: {subfolder}")
+    DATA_REDUCTION = 6
+    tokenizer = ActionPixelBytesTokenizer(data_slicing=DATA_REDUCTION)
+    
+    # Paramètres
+    VOCAB_SIZE = tokenizer.vocab_size
+    EMBED_SIZE = 128
+    HIDDEN_SIZE = 512
+    NUM_LAYERS = 2
+    PXBY_DIM = 6 # tokenizer
+    AR = False
+    BATCH_SIZE = 32
+    EPOCHS = 10
+    LEARNING_RATE = 0.001
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    ACCUMULATION_STEPS = 4
+    SEQ_LENGTH = 1024
+    STRIDE = 512
+    
+    # Initialisation du modèle
+    config = ModelConfig_(vocab_size=VOCAB_SIZE, embed_size=EMBED_SIZE, hidden_size=HIDDEN_SIZE, 
+                          num_layers=NUM_LAYERS, pxby_dim=PXBY_DIM, auto_regressive=AR)
+    model = BestPreTrainedModel(config).to(DEVICE)
+    print(f"Le modèle a {count_parameters_in_k(model):.2f}k paramètres entraînables.")
+
+    # Préparation des données
+    def dataloading(ds):
+        dataset = TokenizedDataset(ds, tokenizer, SEQ_LENGTH, STRIDE)
+        sampler = ShuffledSampler(dataset, seed=42)
+        return DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn, sampler=sampler)
+    train_dataloader, val_dataloader = dataloading(train_ds), dataloading(val_ds)
+
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+    criterion = nn.CrossEntropyLoss(ignore_index=-100)
+    scaler = GradScaler() if torch.cuda.is_available() else None
+
+    # Entraînement
+    model.train_model(train_dataloader, val_dataloader, optimizer, criterion, DEVICE, scaler, EPOCHS, ACCUMULATION_STEPS)
+
+    # Sauvegarde du modèle
+    model.save_pretrained('lstm_pokemon_sprite_model')
+
+    # Test de génération
+    test_input = next(iter(dataloader))['input_ids'][:1].to(DEVICE)
+    generated = model.generate(test_input, max_length=100)
+    print("Generated sequence:", generated)
