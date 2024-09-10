@@ -142,7 +142,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
             padded[1:, 1:-1, :-2]]  # (t, i, j-1) : wrong previous value
         context = torch.stack(slices, dim=-1).reshape(-1, 6)
         targets = context_array.reshape(-1, 1)
-        context[1:,-1] = targets[:-1,0] # true previous value (AutoEncoder)
+        context[1:,-1] = targets[:-1,0] # true previous value (AutoRegressive)
         return context, targets
 
 ### basic test
