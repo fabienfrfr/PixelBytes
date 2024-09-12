@@ -40,7 +40,7 @@ DEFAULT_ACTION_STATE = np.linspace(-1, 1, 38).tolist()
 
 ##### Tokenizer
 class ActionPixelBytesTokenizer(PreTrainedTokenizer):
-    def __init__(self, data_slicing=1, **kwargs):
+    def __init__(self, data_slicing={"image":1, "audio":1}, **kwargs):
         ## Bytes (ASCII - UTF8) + Pixel (RGB NES Palette) + Action-space (Control & Audio)
         ActionPixelbytes = DEFAULT_BYTES + DEFAULT_PALETTE + DEFAULT_ACTION_STATE
         self.vocab = {ActionPixelbytes[i]: i for i in range(len(ActionPixelbytes))}
@@ -114,7 +114,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
             frame = torch.tensor(rgb2lab(np.array(image.convert('RGB')) / 255.0))
             distances = torch.cdist(frame.reshape(-1, 3), self.LabPalette)
             frames[i] = distances.argmin(dim=1).reshape(image.size[::-1])
-        frames = (frames + self.bytes_size)[::self.slicing, ::self.slicing, ::self.slicing]
+        frames = (frames + self.bytes_size)[::self.slicing['image'], ::self.slicing['image'], ::self.slicing['image']]
         added_column = torch.ones((frames.shape[0], frames.shape[1], 1), dtype=torch.long)
         added_column[:, -1, :] = 2
         return torch.cat((frames, added_column), dim=2)
@@ -126,7 +126,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         normalized_state = torch.clamp(torch.tensor(stats.zscore(audio.numpy(), axis=1)), -1, 1).flatten()
         action_state_tensor = torch.tensor(DEFAULT_ACTION_STATE).reshape(-1, 1)
         indices = torch.tensor(cKDTree(action_state_tensor.numpy()).query(normalized_state.reshape(-1, 1).numpy())[1]).reshape(audio.shape)
-        indices = (indices + self.bytes_size + self.palet_size)[:, ::self.slicing]
+        indices = (indices + self.bytes_size + self.palet_size)[:, ::self.slicing['audio']]
         separators = torch.tensor([[1], [2]])[:indices.shape[0]]
         return torch.cat([indices, separators], dim=1).T.unsqueeze(1)
 
@@ -147,7 +147,8 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
 
 ### basic test
 if __name__ == '__main__' :
-    tokenizer = ActionPixelBytesTokenizer(data_slicing=4)
+    data_reduction = {"image":2, "audio":4}
+    tokenizer = ActionPixelBytesTokenizer(data_slicing=data_reduction)
     from datasets import load_dataset
     pxby_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")
     bulbi = img = pxby_dataset['train']['image'][0]

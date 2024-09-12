@@ -181,7 +181,7 @@ if __name__ == '__main__':
     hf_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")['train'].train_test_split(test_size=0.1, seed=42)
     train_ds, val_ds = hf_dataset['train'], hf_dataset['test']
     
-    DATA_REDUCTION = 6
+    DATA_REDUCTION = {"image":6, "audio":12}
     tokenizer = ActionPixelBytesTokenizer(data_slicing=DATA_REDUCTION)
     
     # Paramètres
