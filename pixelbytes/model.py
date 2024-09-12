@@ -13,7 +13,6 @@ from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 import numpy as np, pandas as pd
 from transformers import PreTrainedModel, PretrainedConfig
-from mambapy.mamba import Mamba, MambaConfig
 from torch.cuda.amp import GradScaler
 
 ## Data Part
@@ -69,22 +68,16 @@ def collate_fn(batch):
 ## Model and training
 class ModelConfig(PretrainedConfig):
     def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, 
-                 auto_regressive=True, model_type="lstm", d_conv=4,expand=2,**kwargs):
+                 auto_regressive=True, model_type="lstm", **kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.pxby_dim = pxby_dim
-        self.pxby_emb = embed_size // (self.pxby_dim * (expand if model_type=="mamba" else 1))
+        self.pxby_emb = embed_size // self.pxby_dim
         self.embed_size = int(self.pxby_emb * self.pxby_dim)
         self.AR = auto_regressive
         self.model_type = model_type
-        self.hidden_size = self.d_state = hidden_size
-        # Mamba specific attributes
-        self.d_conv = d_conv
-        self.expand = expand
-    def get_mamba_config(self):
-        return MambaConfig(d_model=self.embed_size, n_layers=self.num_layers, 
-                           d_state=self.d_state, d_conv=self.d_conv, expand_factor=self.expand)
+        self.hidden_size = hidden_size
 
 class aPxBySequenceModel(PreTrainedModel):
     config_class = ModelConfig
@@ -93,7 +86,7 @@ class aPxBySequenceModel(PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.embedding = nn.Embedding(config.vocab_size, config.pxby_emb, padding_idx=0)
-        if config.model_type == "mamba": self.sequence_model = Mamba(config.get_mamba_config())
+        if config.model_type != "lstm": self.sequence_model = model_type(**config)
         else: self.sequence_model = nn.LSTM(config.embed_size, config.hidden_size, config.num_layers, batch_first=True)
         self.fc = nn.Linear(config.hidden_size, config.vocab_size * (config.pxby_dim if config.AR else 1))
         self.pxby_dim, self.AR, self.model_type = config.pxby_dim, config.AR, config.model_type
@@ -112,11 +105,13 @@ class aPxBySequenceModel(PreTrainedModel):
             current_input = input_ids.clone()
             for i in range(num_generate): # Generate next token
                 outputs = self(current_input)
-                next_token = torch.multinomial(
-                    torch.softmax(outputs[:, -1, -1] if self.AR else outputs[:, -1] / temperature, dim=-1),
-                    num_samples=1)
-                if self.AR: current_input = torch.cat([current_input, next_token.unsqueeze(1).unsqueeze(1)], dim=2) # true generator
-                else: current_input[:, -(i+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
+                if self.AR: # Reshape outputs to [1, vocab_size], apply softmax and sample from prob distribution
+                    probs = torch.softmax(outputs[:, -1].view(-1, self.config.vocab_size) / temperature, dim=-1)
+                    next_token = torch.multinomial(probs, num_samples=1).view(1, 1, -1)
+                    current_input = torch.cat([current_input, next_token], dim=1) # true generator
+                else:
+                    next_token = torch.multinomial(torch.softmax(outputs[:, -1] / temperature, dim=-1), num_samples=1)
+                    current_input[:, -(i+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
             return current_input
 
     def train_model(self, train_dataloader, val_dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4, eval_every=5):
@@ -190,6 +185,7 @@ if __name__ == '__main__':
     
     SEQ_LENGTH = 1024
     STRIDE = 512
+    BATCH_SIZE = 32
     # Préparation des données
     def dataloading(ds):
         dataset = TokenPxByDataset(ds, tokenizer, SEQ_LENGTH, STRIDE)
@@ -197,6 +193,6 @@ if __name__ == '__main__':
     train_dataloader, val_dataloader = dataloading(train_ds), dataloading(val_ds)
 
     # Test de génération
-    test_input = next(iter(train_dataloader))['input_ids'][:1].to(DEVICE)
+    test_input = next(iter(train_dataloader))['input_ids'][:1]
     generated = model.generate(test_input, 100)
     print("Generated sequence:", generated)
