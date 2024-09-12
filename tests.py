@@ -13,7 +13,7 @@ if __name__ == '__main__' :
     # python3 -m pixelbytes.main build
     # python3 -m pixelbytes.main train --seq_length 512 --strides 256
     # generate_arg('ffurfaro/PixelBytes-Pokemon','rnn_bi_pxby_81_dim_64_state_2_layer_last','svg') #dummy !
-    # https://www.perplexity.ai/search/je-cherche-une-base-de-donnee-6CeaKElsSyCN64Qzrmtuvw
+    """
     import numpy as np
     from pydub import AudioSegment
     import matplotlib.pyplot as plt
@@ -71,6 +71,7 @@ if __name__ == '__main__' :
     
     original, processed, original_rate, processed_rate, b, a = process_audio(input_file, output_file)
     plot_signals(original, processed, original_rate, processed_rate, b, a)
+    """
     """
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation

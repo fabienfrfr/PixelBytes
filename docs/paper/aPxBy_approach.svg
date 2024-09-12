@@ -9,6 +9,9 @@
    id="svg5"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    sodipodi:docname="aPxBy_approach.svg"
+   inkscape:export-filename="/home/fabien/Documents/GIT/PixelBytes/docs/paper/aPxBy_approach.png"
+   inkscape:export-xdpi="384"
+   inkscape:export-ydpi="384"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -28,9 +31,9 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:zoom="0.72649406"
-     inkscape:cx="471.44226"
-     inkscape:cy="-19.958869"
+     inkscape:zoom="0.51370887"
+     inkscape:cx="335.79331"
+     inkscape:cy="119.71761"
      inkscape:window-width="1850"
      inkscape:window-height="1016"
      inkscape:window-x="0"
@@ -47,6 +50,20 @@
   </sodipodi:namedview>
   <defs
      id="defs2">
+    <marker
+       style="overflow:visible"
+       id="TriangleInM"
+       refX="0.0"
+       refY="0.0"
+       orient="auto"
+       inkscape:stockid="TriangleInM"
+       inkscape:isstock="true">
+      <path
+         transform="scale(-0.4)"
+         style="fill-rule:evenodd;fill:context-stroke;stroke:context-stroke;stroke-width:1.0pt"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         id="path17498" />
+    </marker>
     <marker
        style="overflow:visible"
        id="TriangleOutM"
@@ -806,7 +823,7 @@
        ry="0.52899206" />
     <g
        id="g850"
-       transform="translate(4.0174681,-30.38186)">
+       transform="translate(5.0758015,-30.38186)">
       <g
          id="g780-5"
          transform="translate(13.229167)">
@@ -846,7 +863,7 @@
     </g>
     <g
        id="g850-3"
-       transform="translate(25.184134,-30.38186)">
+       transform="translate(26.242468,-30.38186)">
       <g
          id="g780-5-2"
          transform="translate(13.229167)">
@@ -895,33 +912,33 @@
     <rect
        style="fill:none;stroke:#b3b3b3;stroke-width:0.159606;stop-color:#000000"
        id="rect1014"
-       width="42.33334"
-       height="29.955326"
-       x="30.191578"
-       y="104.55568"
+       width="43.945194"
+       height="34.660915"
+       x="29.584019"
+       y="103.38174"
        ry="0.59910047" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;line-height:0.95;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.15;stop-color:#000000"
-       x="51.016502"
-       y="109.47066"
+       x="52.074837"
+       y="107.88316"
        id="text7448-4"><tspan
          sodipodi:role="line"
          id="tspan7446-6"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.15"
-         x="51.016502"
-         y="109.47066">Selective position</tspan></text>
+         x="52.074837"
+         y="107.88316">Selective position</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;line-height:0.95;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.15;stop-color:#000000"
-       x="50.96759"
-       y="132.69597"
+       x="52.025925"
+       y="136.15331"
        id="text7448-4-5"><tspan
          sodipodi:role="line"
          id="tspan7446-6-3"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.15"
-         x="50.96759"
-         y="132.69597">3D ZigZag Scan</tspan></text>
+         x="52.025925"
+         y="136.15331">3D ZigZag Scan</tspan></text>
     <path
        style="fill:none;stroke:#666666;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#TriangleOutL-6-35-8)"
        d="m 134.80996,75.241043 v -3.96875"
@@ -1990,7 +2007,7 @@
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.2, 0.2;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#TriangleOutL)"
-       d="M 35.767467,115.13896 H 46.3508 l -10.583333,5.29167 H 46.3508 l -10.583333,5.29166 h 15.875 v -10.58333 h 15.875 l -10.583333,5.29167 h 9.260416"
+       d="m 36.825801,115.13896 h 10.583333 l -10.583333,5.29167 h 10.583333 l -10.583333,5.29166 h 15.875 v -10.58333 h 15.875 l -10.583333,5.29167 h 9.260416"
        id="path9914" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.15;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.15, 0.15;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#TriangleOutM)"
@@ -2068,50 +2085,50 @@
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;line-height:0.95;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.0925368;stop-color:#000000"
        x="85.590759"
-       y="100.61005"
+       y="97.712868"
        id="text7448-46"><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.0925368"
          x="85.590759"
-         y="100.61005"
+         y="97.712868"
          id="tspan7667">Palette Token</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.0925368"
          x="85.590759"
-         y="102.62088"
+         y="99.723701"
          id="tspan52130">(GIF : RGB-to-NES)</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;line-height:0.95;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.15;stop-color:#000000"
        x="122.17714"
-       y="100.62193"
+       y="97.736641"
        id="text7448-46-2"><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.15"
          x="122.17714"
-         y="100.62193"
+         y="97.736641"
          id="tspan7667-1">Quantized Token</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.15"
          x="122.17714"
-         y="102.63277"
+         y="99.747475"
          id="tspan48072">(action-state channel)</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:2.11667px;line-height:0.95;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif';text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.15;stop-color:#000000"
        x="182.3542"
-       y="100.59514"
+       y="97.712868"
        id="text7448-46-2-0"><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.15"
          x="182.3542"
-         y="100.59514"
+         y="97.712868"
          id="tspan7667-1-7">Bytes Token</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.15"
          x="182.3542"
-         y="102.63578"
-         id="tspan55484">(limited)</tspan></text>
+         y="99.75351"
+         id="tspan55484">(lower limited)</tspan></text>
     <g
        id="g1193"
        transform="matrix(0.06247844,0,0,0.06247844,169.63761,66.57856)"
@@ -2499,27 +2516,22 @@
     <text
        xml:space="preserve"
        style="font-size:2.13012px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:0.0544297;stroke-linecap:butt;stroke-linejoin:round"
-       x="225.22963"
+       x="234.35649"
        y="108.05975"
        id="text7563-2-1-7-1-9-8-5-9-3"
        inkscape:export-filename="/home/fabien/Documents/GIT/PixelBytes/docs/paper/example_generation.png"
        inkscape:export-xdpi="384"
        inkscape:export-ydpi="384"><tspan
          sodipodi:role="line"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.0544297"
-         x="225.22963"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;stroke-width:0.0544297"
+         x="234.35649"
          y="108.05975"
          id="tspan26987-3-9-7-1-0-8-0-6-8">Exploring Patch</tspan><tspan
          sodipodi:role="line"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.0544297"
-         x="225.22963"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;stroke-width:0.0544297"
+         x="234.35649"
          y="110.7524"
-         id="tspan5174">Embedding window</tspan><tspan
-         sodipodi:role="line"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.0544297"
-         x="225.22963"
-         y="113.44505"
-         id="tspan8534">(For comparizon)</tspan></text>
+         id="tspan8534">Embedding window</tspan></text>
     <rect
        style="fill:#cccccc;fill-opacity:1;stroke:#ffffff;stroke-width:0.119595;stroke-linecap:butt;stroke-linejoin:round"
        id="rect18537-5-9"
@@ -2749,7 +2761,7 @@
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.0544297"
          x="210.11932"
          y="120.77916"
-         id="tspan26987-3-9-7-1-0-8-0-8">Sequencing</tspan></text>
+         id="tspan26987-3-9-7-1-0-8-0-8">Sequencing data</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:2.13012px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:0.0544297;stroke-linecap:butt;stroke-linejoin:round"
@@ -2994,5 +3006,59 @@
        x="226.58945"
        y="135.85945"
        ry="5.0792846e-07" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;line-height:0.95;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.0925368;stop-color:#000000"
+       x="42.362221"
+       y="131.35541"
+       id="text7448-46-3"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.0925368"
+         x="42.362221"
+         y="131.35541"
+         id="tspan52130-7">t-1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;line-height:0.95;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.0925368;stop-color:#000000"
+       x="63.244835"
+       y="131.30165"
+       id="text7448-46-3-5"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.0925368"
+         x="63.244835"
+         y="131.30165"
+         id="tspan52130-7-3">t</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;line-height:0.95;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.0925368;stop-color:#000000"
+       x="32.009422"
+       y="121.20899"
+       id="text7448-46-3-56"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.0925368"
+         x="32.009422"
+         y="121.20899"
+         id="tspan52130-7-2">h</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;line-height:0.95;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.0925368;stop-color:#000000"
+       x="42.213257"
+       y="111.44295"
+       id="text7448-46-3-56-9"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.0925368"
+         x="42.213257"
+         y="111.44295"
+         id="tspan52130-7-2-1">w</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#TriangleOutM);marker-end:url(#TriangleInM)"
+       d="m 33.650801,112.87007 v 15.12311"
+       id="path16904"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#TriangleOutM);marker-end:url(#TriangleInM)"
+       d="M 34.56971,111.96398 H 49.664902"
+       id="path17033"
+       sodipodi:nodetypes="cc" />
   </g>
 </svg>

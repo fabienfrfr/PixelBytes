@@ -69,7 +69,7 @@ def collate_fn(batch):
 ## Model and training
 class ModelConfig(PretrainedConfig):
     def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, 
-                 auto_regressive=False, model_type="lstm", d_conv=4,expand=2,**kwargs):
+                 auto_regressive=True, model_type="lstm", d_conv=4,expand=2,**kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.num_layers = num_layers
@@ -177,52 +177,26 @@ if __name__ == '__main__':
     
     def count_parameters_in_k(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad) / 1000
-
+    
+    # Data
     hf_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")['train'].train_test_split(test_size=0.1, seed=42)
     train_ds, val_ds = hf_dataset['train'], hf_dataset['test']
     
     DATA_REDUCTION = {"image":6, "audio":12}
     tokenizer = ActionPixelBytesTokenizer(data_slicing=DATA_REDUCTION)
     
-    # Paramètres
-    VOCAB_SIZE = tokenizer.vocab_size
-    EMBED_SIZE = 128
-    HIDDEN_SIZE = 512
-    NUM_LAYERS = 2
-    PXBY_DIM = 6 # tokenizer
-    AR = False
-    MODEL_TYPE = "lstm"
-    BATCH_SIZE = 32
-    EPOCHS = 10
-    LEARNING_RATE = 0.001
-    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    ACCUMULATION_STEPS = 4
+    # Import model
+    model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-Pokemon", subfolder="lstm_autoregressive_last")
+    
     SEQ_LENGTH = 1024
     STRIDE = 512
-    
-    # Initialisation du modèle
-    config = ModelConfig(vocab_size=VOCAB_SIZE, embed_size=EMBED_SIZE, hidden_size=HIDDEN_SIZE, 
-                          num_layers=NUM_LAYERS, pxby_dim=PXBY_DIM, auto_regressive=AR, model_type=MODEL_TYPE)
-    model = aPxBySequenceModel(config).to(DEVICE)
-    print(f"Le modèle a {count_parameters_in_k(model):.2f}k paramètres entraînables.")
-
     # Préparation des données
     def dataloading(ds):
         dataset = TokenPxByDataset(ds, tokenizer, SEQ_LENGTH, STRIDE)
         return DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn, shuffle=True)
     train_dataloader, val_dataloader = dataloading(train_ds), dataloading(val_ds)
 
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
-    criterion = nn.CrossEntropyLoss(ignore_index=-100)
-    scaler = GradScaler() if torch.cuda.is_available() else None
-
-    # Entraînement
-    model.train_model(train_dataloader, val_dataloader, optimizer, criterion, DEVICE, scaler, EPOCHS, ACCUMULATION_STEPS)
-
-    # Sauvegarde du modèle
-    model.save_pretrained('lstm_pokemon_sprite_model')
-
     # Test de génération
-    test_input = next(iter(dataloader))['input_ids'][:1].to(DEVICE)
-    generated = model.generate(test_input, max_length=100)
+    test_input = next(iter(train_dataloader))['input_ids'][:1].to(DEVICE)
+    generated = model.generate(test_input, 100)
     print("Generated sequence:", generated)
