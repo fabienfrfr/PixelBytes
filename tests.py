@@ -14,6 +14,86 @@ if __name__ == '__main__' :
     # python3 -m pixelbytes.main train --seq_length 512 --strides 256
     # generate_arg('ffurfaro/PixelBytes-Pokemon','rnn_bi_pxby_81_dim_64_state_2_layer_last','svg') #dummy !
     """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from PIL import Image
+    from scipy.ndimage import gaussian_filter
+    import os
+    
+    folder_path = "pokemon_generated/"
+    file_names = sorted([f for f in os.listdir(folder_path) if f.endswith('.png')])
+    
+    fig, axes = plt.subplots(1, len(file_names), figsize=(15, 5))
+    fig.subplots_adjust(wspace=0)  # Supprime l'espace horizontal entre les sous-plots
+    
+    for i, (ax, file_name) in enumerate(zip(axes, file_names)):
+        img = np.array(Image.open(os.path.join(folder_path, file_name)))
+        non_black = np.where(img.sum(axis=(1, 2)) > 0)[0]
+        img_cropped = img[non_black[0]:non_black[-1] + 1]
+        if i % 2 == 1 and i > 0:
+            prev_height = axes[i-1].images[0].get_array().shape[0]
+            img_cropped = img_cropped[:prev_height]
+            ax.set_yticks([])  # Supprime les graduations de l'axe y
+            ax.set_title("Generated Image", fontsize=10)
+        else:
+            ax.set_title("Original Image", fontsize=10)
+        ax.imshow(img_cropped)
+    
+    plt.tight_layout(pad=0.5)
+    
+    # Enregistrer la figure au format PNG
+    output_filename = "pokemon_comparison.png"
+    plt.savefig(output_filename, format='png', dpi=300, bbox_inches='tight')
+    print(f"Image saved as {output_filename}")
+    
+    # Afficher la figure (optionnel)
+    plt.show()
+    """
+    """
+    def count_parameters_in_k(model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad) / 1000
+    
+    # Data
+    hf_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")['train'].train_test_split(test_size=0.1, seed=42)
+    train_ds, val_ds = hf_dataset['train'], hf_dataset['test']
+    
+    DATA_REDUCTION = {"image":2, "audio":4} # same training condition
+    tokenizer = ActionPixelBytesTokenizer(data_slicing=DATA_REDUCTION)
+    
+    # Import model
+    model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-Pokemon", subfolder="lstm_autoregressive_last")
+    print(count_parameters_in_k(model))
+    
+    # Charger le dataset
+    pxby_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")
+    pkmn_idx = 0
+    pkmn = pxby_dataset['train']['image'][pkmn_idx]
+    bio = pxby_dataset['train']['text'][pkmn_idx]
+    cry = pxby_dataset['train']['audio'][pkmn_idx]
+    pkmn_ids = tokenizer(text=bio, image=pkmn, audio=cry)
+    
+    # Génération repeat
+    start, length = len(bio), int(1.5*((pkmn.height / 2) * (pkmn.width /2))) # 1000 #int(1.5*((pkmn.height / 2) * (pkmn.width /2)))
+    pkmn_input = pkmn_ids['input_ids'][start:start+length][None]
+    generated = model.generate(pkmn_input, 500, temperature=0.1)
+    
+    # Décodage et construction des images
+    token = tokenizer.decode(generated)
+    img_pkmn = tokenizer.construct_images(token['image'])
+    
+    # Dossier de sortie
+    output_folder = f"pokemon_generated_{pkmn_idx}"
+    os.makedirs(output_folder, exist_ok=True)
+    
+    # Sauvegarde des images
+    for idx, img_frame in enumerate(img_pkmn):
+        img_frame_uint8 = np.uint8(img_frame)
+        plt.imshow(img_frame_uint8); plt.show()
+        Image.fromarray(img_frame_uint8).save(f"{output_folder}/pkmn_{pkmn_idx}_{idx}_generated.png")
+    
+    print(f"Images sauvegardées dans le dossier: {output_folder}")
+    """
+    """
     import numpy as np
     from pydub import AudioSegment
     import matplotlib.pyplot as plt

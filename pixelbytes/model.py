@@ -76,7 +76,7 @@ class ModelConfig(PretrainedConfig):
         self.pxby_emb = embed_size // self.pxby_dim
         self.embed_size = int(self.pxby_emb * self.pxby_dim)
         self.AR = auto_regressive
-        self.model_type = model_type
+        self.model_type = model_type # Don't forget mask if you want to use transformer
         self.hidden_size = hidden_size
 
 class aPxBySequenceModel(PreTrainedModel):
@@ -169,30 +169,4 @@ class aPxBySequenceModel(PreTrainedModel):
 if __name__ == '__main__':
     from tokenizer import ActionPixelBytesTokenizer
     from datasets import load_dataset
-    
-    def count_parameters_in_k(model):
-        return sum(p.numel() for p in model.parameters() if p.requires_grad) / 1000
-    
-    # Data
-    hf_dataset = load_dataset("ffurfaro/PixelBytes-PokemonAll")['train'].train_test_split(test_size=0.1, seed=42)
-    train_ds, val_ds = hf_dataset['train'], hf_dataset['test']
-    
-    DATA_REDUCTION = {"image":6, "audio":12}
-    tokenizer = ActionPixelBytesTokenizer(data_slicing=DATA_REDUCTION)
-    
-    # Import model
-    model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-Pokemon", subfolder="lstm_autoregressive_last")
-    
-    SEQ_LENGTH = 1024
-    STRIDE = 512
-    BATCH_SIZE = 32
-    # Préparation des données
-    def dataloading(ds):
-        dataset = TokenPxByDataset(ds, tokenizer, SEQ_LENGTH, STRIDE)
-        return DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn, shuffle=True)
-    train_dataloader, val_dataloader = dataloading(train_ds), dataloading(val_ds)
-
-    # Test de génération
-    test_input = next(iter(train_dataloader))['input_ids'][:1]
-    generated = model.generate(test_input, 100)
-    print("Generated sequence:", generated)
+    ## some test in test.py file

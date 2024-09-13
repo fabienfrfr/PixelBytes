@@ -31,9 +31,9 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:zoom="0.51370887"
-     inkscape:cx="335.79331"
-     inkscape:cy="119.71761"
+     inkscape:zoom="4.109671"
+     inkscape:cx="693.12119"
+     inkscape:cy="339.32157"
      inkscape:window-width="1850"
      inkscape:window-height="1016"
      inkscape:window-x="0"
@@ -2516,7 +2516,7 @@
     <text
        xml:space="preserve"
        style="font-size:2.13012px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:0.0544297;stroke-linecap:butt;stroke-linejoin:round"
-       x="234.35649"
+       x="234.88565"
        y="108.05975"
        id="text7563-2-1-7-1-9-8-5-9-3"
        inkscape:export-filename="/home/fabien/Documents/GIT/PixelBytes/docs/paper/example_generation.png"
@@ -2524,14 +2524,19 @@
        inkscape:export-ydpi="384"><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;stroke-width:0.0544297"
-         x="234.35649"
+         x="234.88565"
          y="108.05975"
          id="tspan26987-3-9-7-1-0-8-0-6-8">Exploring Patch</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;stroke-width:0.0544297"
-         x="234.35649"
+         x="234.88565"
          y="110.7524"
-         id="tspan8534">Embedding window</tspan></text>
+         id="tspan8534">Embedding window</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.13012px;font-family:cmr10;-inkscape-font-specification:cmr10;text-align:center;text-anchor:middle;stroke-width:0.0544297"
+         x="234.88565"
+         y="113.44505"
+         id="tspan2393">(2D ZigZag data)</tspan></text>
     <rect
        style="fill:#cccccc;fill-opacity:1;stroke:#ffffff;stroke-width:0.119595;stroke-linecap:butt;stroke-linejoin:round"
        id="rect18537-5-9"
@@ -3060,5 +3065,10 @@
        d="M 34.56971,111.96398 H 49.664902"
        id="path17033"
        sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.26458299;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#TriangleOutM);stroke-miterlimit:4;stroke-dasharray:0.26458299,0.26458299;stroke-dashoffset:0"
+       d="m 210.34375,103.18751 h 10.58333 l -10.58333,5.29166 5.29167,0"
+       id="path1594"
+       sodipodi:nodetypes="cccc" />
   </g>
 </svg>

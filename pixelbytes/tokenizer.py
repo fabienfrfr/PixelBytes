@@ -68,24 +68,30 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         return [self._convert_token_to_id(token) for token in tokens]
     
     def decode(self, token_ids, skip_special_tokens=True):
+        if token_ids.dim() > 1 : token_ids = token_ids.view(-1,6)[:,-1] # last padded value
+        token_ids = token_ids.tolist()
         tokens = [self._convert_id_to_token(id) for id in token_ids]
-        
-        text_tokens, image_frames, current_frame, audio_tokens = [], [], [], []
+        text_tokens, image_frames, current_frame, current_line, audio_tokens = [], [], [], [], []
         for token in tokens:
             if isinstance(token, bytes):
-                if token == b'\n':
+                if token == b'\t':
+                    if current_line:
+                        current_frame.append(np.array(current_line)) # shape W,3
+                        current_line = []
+                elif token == b'\n':
                     if current_frame:
                         image_frames.append(current_frame)
-                        current_frame = []
+                        current_line, current_frame = [], []
                 elif token in DEFAULT_BYTES:
                     text_tokens.append(token)
             elif isinstance(token, tuple):
-                current_frame.append(token)
+                current_line.append(token)
             elif isinstance(token, (int, float)):
                 audio_tokens.append(token)
-        if current_frame:
+        if current_line:
+            current_frame.append(np.array(current_line))
             image_frames.append(current_frame)
-        return {'text': text_tokens,
+        return {'text': b''.join(text_tokens),
                 'image': image_frames,
                 'audio': audio_tokens}
 
@@ -144,6 +150,15 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         targets = context_array.reshape(-1, 1)
         context[1:,-1] = targets[:-1,0] # true previous value (AutoRegressive)
         return context, targets
+
+    def construct_images(self, images_token):
+        img_list = []
+        for img_lines in images_token :
+            max_width = max(line.shape[0] for line in img_lines)
+            padded_lines = [np.pad(line, ((0, max_width - line.shape[0]), (0, 0)), 'constant') for line in img_lines]
+            img_list.append(np.stack(padded_lines))
+        return img_list
+    
 
 ### basic test
 if __name__ == '__main__' :
