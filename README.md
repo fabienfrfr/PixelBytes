@@ -82,12 +82,16 @@ Citation
 
 .. code-block:: bibtex
 
-   @misc{pixelbytes,
-   author = {Fabien Furfaro},
-   title = {PixelBytes+: Unified Multimodal Sequence Processing},
-   year = {2024},
-   publisher = {GitHub},
-   journal = {GitHub repository},
-   url = {https://github.com/fabienfrfr/PixelBytes}
-   }
+   @misc{furfaro2024pixelbytes_project,
+        author = {Furfaro, Fabien},
+        title = {PixelBytes: A Unified Multimodal Representation Learning Project},
+        year = {2024},
+        howpublished = {
+            GitHub: \url{https://github.com/fabienfrfr/PixelBytes},
+            Models: \url{https://huggingface.co/ffurfaro/PixelBytes-Pokemon} and \url{https://huggingface.co/ffurfaro/aPixelBytes-Pokemon},
+            Datasets: \url{https://huggingface.co/datasets/ffurfaro/PixelBytes-Pokemon} and \url{https://huggingface.co/datasets/ffurfaro/PixelBytes-PokemonAll}
+        },
+        note = {GitHub repository, Hugging Face Model Hub, and Datasets Hub}
+        }
+
 
