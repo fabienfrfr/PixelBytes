@@ -82,6 +82,12 @@ Citation
 
 .. code-block:: bibtex
 
+   @article{furfaro2024pixelbytes,
+     title={PixelBytes: Catching Unified Representation for Multimodal Generation},
+     author={Furfaro, Fabien},
+     year={2024}
+   }
+
    @misc{furfaro2024pixelbytes_project,
         author = {Furfaro, Fabien},
         title = {PixelBytes: A Unified Multimodal Representation Learning Project},
