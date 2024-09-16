@@ -82,10 +82,14 @@ Citation
 
 .. code-block:: bibtex
 
-   @article{furfaro2024pixelbytes,
-     title={PixelBytes: Catching Unified Representation for Multimodal Generation},
-     author={Furfaro, Fabien},
-     year={2024}
+   @article{furfaro:hal-04683349,
+     TITLE = {{PixelBytes: Catching Unified Representation for Multimodal Generation}},
+     AUTHOR = {Furfaro, Fabien},
+     URL = {https://hal.science/hal-04683349},
+     NOTE = {working paper or preprint},
+     YEAR = {2024},
+     KEYWORDS = {Embedding ; Multimodal representation learning ; Sequence generation},
+     HAL_ID = {hal-04683349},
    }
 
    @misc{furfaro2024pixelbytes_project,
