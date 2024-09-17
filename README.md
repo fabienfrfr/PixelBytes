@@ -60,6 +60,8 @@ Build and push Docker image:
    docker build -t $USER/img_name .
    docker push $USER/img_name
 
+   docker-compose up --build
+
 Deploy to your preferred cloud provider (OVH, Azure, AWS, Google Cloud).
 
 Contributing
