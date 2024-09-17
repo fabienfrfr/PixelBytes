@@ -68,7 +68,7 @@ def collate_fn(batch):
 ## Model and training
 class ModelConfig(PretrainedConfig):
     def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, 
-                 auto_regressive=True, diffusion=False, model_type="lstm", **kwargs):
+                 auto_regressive=True, diffusion=False, num_diffusion_steps=10, model_type="lstm", **kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.num_layers = num_layers
@@ -77,6 +77,7 @@ class ModelConfig(PretrainedConfig):
         self.embed_size = int(self.pxby_emb * self.pxby_dim)
         self.auto_regressive = auto_regressive
         self.diffusion = diffusion # not tested
+        self.num_diffusion_steps = num_diffusion_steps # not tested
         self.model_type = model_type # Don't forget mask if you want to use transformer
         self.hidden_size = hidden_size
 
@@ -90,16 +91,30 @@ class aPxBySequenceModel(PreTrainedModel):
         if config.model_type != "lstm": self.sequence_model = model_type(**config)
         else: self.sequence_model = nn.LSTM(config.embed_size, config.hidden_size, config.num_layers, batch_first=True)
         self.fc = nn.Linear(config.hidden_size, config.vocab_size * (config.pxby_dim if config.auto_regressive else 1))
-        self.pxby_dim, self.model_type = config.pxby_dim, config.model_type
+        self.pxby_dim, self.model_type, self.num_diffusion_steps = config.pxby_dim, config.model_type, config.num_diffusion_steps
         self.auto_regressive, self.diffusion = config.auto_regressive, config.diffusion
-        
-    def forward(self, x):
+
+    def forward(self, x, t=None):
         batch_size, seq_len, _ = x.shape
         x = self.embedding(x).view(batch_size, seq_len, -1)
-        if self.diffusion : x += 0.1 * torch.randn_like(x) * torch.randint(0,2, (batch_size, seq_len, 1)) # (not trained)
+        if self.diffusion : # ARDM training
+            if t is None: t = torch.randint(0, self.num_diffusion_steps, (batch_size,))
+            alpha_t = torch.cos(t / self.num_diffusion_steps * np.pi / 2)[:, None, None]
+            x = alpha_t * x + (1 - alpha_t) * torch.randn_like(x) # (not trained)
         x, _ = self.sequence_model(x)
         x = self.fc(x) # Shape: (batch_size, seq_len, vocab_size*pxby) or (batch_size, seq_len, vocab_size)
         return x.view(batch_size, seq_len, self.pxby_dim, -1) if self.auto_regressive else x
+
+    def _process_probs(self, outputs, temperature, current_input, i=None):
+        if self.auto_regressive: # Reshape outputs to [1, vocab_size], apply softmax and sample from prob distribution
+            probs = torch.softmax(outputs[:, -1].view(-1, self.config.vocab_size) / temperature, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1).view(1, 1, -1)
+            return torch.cat([current_input, next_token], dim=1) # true generator
+        else:
+            probs = torch.softmax(outputs[:, -1] / temperature, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1)
+            current_input[:, -(i+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
+            return current_input
 
     def generate(self, input_ids, num_generate, temperature=1.0):
         self.eval()
@@ -107,13 +122,13 @@ class aPxBySequenceModel(PreTrainedModel):
             current_input = input_ids.clone()
             for i in range(num_generate): # Generate next token
                 outputs = self(current_input)
-                if self.auto_regressive: # Reshape outputs to [1, vocab_size], apply softmax and sample from prob distribution
-                    probs = torch.softmax(outputs[:, -1].view(-1, self.config.vocab_size) / temperature, dim=-1)
-                    next_token = torch.multinomial(probs, num_samples=1).view(1, 1, -1)
-                    current_input = torch.cat([current_input, next_token], dim=1) # true generator
-                else:
-                    next_token = torch.multinomial(torch.softmax(outputs[:, -1] / temperature, dim=-1), num_samples=1)
-                    current_input[:, -(i+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
+                if self.diffusion: # ARDM generation process
+                    for t in reversed(range(self.num_diffusion_steps)): 
+                        t_tensor = torch.full((current_input.shape[0],), t)
+                        outputs = self(current_input, t_tensor)
+                        current_input = self._process_probs(outputs, temperature, current_input, i)
+                else : # Original generation process
+                    current_input = self._process_probs(outputs, temperature, current_input, i)
             return current_input
 
     def train_model(self, train_dataloader, val_dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4, eval_every=5):
@@ -174,6 +189,6 @@ if __name__ == '__main__':
     ## some test in test.py file (here very basic)
     model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-Pokemon", subfolder="lstm_autoregressive_last")
     input_tensor = torch.randint(0, 151, (1, 1024, 6))
-    model.diffusion = True
+    #model.diffusion = True
     output_tensor = model.generate(input_tensor, 10) # inconsistent with noise (diffusion uncomment)
     print(output_tensor)
