@@ -12,7 +12,7 @@ from scipy.ndimage import gaussian_filter1d
 from multiprocessing import Pool
 from tqdm import tqdm
 from decimal import Decimal
-import random
+import random, os
 import pandas as pd
 from scipy.io import wavfile
 
@@ -64,7 +64,7 @@ def optimize_system(args):
         cl_sys, _ = lqg(A, B, C, D, QRV)
         if cl_sys is None: return np.inf
         try:
-            _, Y = ct.step_response(cl_sys, T=t[::50])
+            _, Y = ct.step_response(cl_sys, T=T[::50])
             return np.mean((Y - setpoint)**2)
         except: return np.inf
     initial_guess = [10, 1, 1] # QRV
@@ -73,11 +73,11 @@ def optimize_system(args):
     optimal_QRV = result.x
     cl_sys_optimal, K_optimal = lqg(A, B, C, D, optimal_QRV)
     if cl_sys_optimal is None: return None
-    noise = np.random.normal(size=t.shape)
+    noise = np.random.normal(size=T.shape)
     U_noise_optimal = 1 + gaussian_filter1d(noise, 2)/3.
-    T_optimal, Y_optimal, X_optimal = ct.forced_response(cl_sys_optimal, T=t, U=U_noise_optimal, return_x=True)
+    T_optimal, Y_optimal, X_optimal = ct.forced_response(cl_sys_optimal, T=T, U=U_noise_optimal, return_x=True)
     if not (0.5*setpoint < Y_optimal.mean() < 1.5*setpoint): return None
-    U_optimal = -K_optimal @ (X_optimal[:n_states] - setpoint * np.ones((n_states, len(t))))
+    U_optimal = -K_optimal @ (X_optimal[:n_states] - setpoint * np.ones((n_states, len(T))))
     return sys, optimal_QRV, T_optimal, U_optimal.T, Y_optimal
 
 def process_systems(all_systems, T, sample=None):
@@ -105,7 +105,7 @@ def generate_dataset(results):
         tf_sys = ct.ss2tf(A, B, C, D)
         # Save system data
         pd.DataFrame({'numerator': [tf_sys.num[0][0]], 'denominator': [tf_sys.den[0][0]],
-                      'u': [Umin, Umax], 'y': [Ymin, Ymax]}).to_csv(f'csv_database/system_{valid_systems}.csv', index=False)
+                      'u': [[Umin, Umax]], 'y': [[Ymin, Ymax]]}).to_csv(f'csv_database/system_{valid_systems}.csv', index=False)
         # Prepare and save audio signal (limited to 1 second)
         sample_rate = 8000
         max_duration = 1  # 1 second
@@ -141,29 +141,6 @@ if __name__ == '__main__':
     T = np.linspace(0, 100, 1000)
     results = process_systems(all_systems, T, sample=3)
 
-    for result in results:
-        if result is None:
-            continue
+    generate_dataset(results)
+
         
-        sys, QRV, T, U_ , Y_ = result
-        
-        U_dec = np.array([[Decimal(str(x[0])) for x in U_]])
-        U = np.array([float(2 * (x - U_dec.min()) / (U_dec.max() - U_dec.min()) - 1) for x in U_dec[0]])
-        Y = 2*((Y_ - Y_.min()) / (Y_.max() - Y_.min())) - 1
-        print(sys)
-        print("Optimal Q and R values:", QRV)
-        
-        print("Time (10 values):", T[::100])
-        print("Control Input (U 10 values):", U[::100])
-        print("Output (Y 10 values):", Y[::100])
-        
-        plt.figure(figsize=(12, 6))
-        plt.plot(T,Y)
-        plt.axhline(y=0,color='r',linestyle='--',label='Setpoint')
-        plt.plot(T,U,label='Control Input')
-        plt.xlabel('Time (s)')
-        plt.ylabel('Output / Control Input')
-        plt.legend()
-        plt.title('LQG Control Response')
-        plt.tight_layout()
-        plt.show()
