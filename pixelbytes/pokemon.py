@@ -3,7 +3,6 @@
 """
 @author: fabienfrfr
 """
-
 import os, re, shutil, requests
 import numpy as np, pandas as pd
 from bs4 import BeautifulSoup

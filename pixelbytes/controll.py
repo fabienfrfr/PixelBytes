@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-@author: fabienfr
+@author: fabienfrfr
 """
-
 import numpy as np
 import control as ct
 from itertools import product
