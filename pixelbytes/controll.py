@@ -76,7 +76,7 @@ def optimize_system(args):
     noise = np.random.normal(size=t.shape)
     U_noise_optimal = 1 + gaussian_filter1d(noise, 2)/3.
     T_optimal, Y_optimal, X_optimal = ct.forced_response(cl_sys_optimal, T=t, U=U_noise_optimal, return_x=True)
-    if not (0.9*setpoint < Y_optimal.mean() < 1.1*setpoint): return None
+    if not (0.5*setpoint < Y_optimal.mean() < 1.5*setpoint): return None
     U_optimal = -K_optimal @ (X_optimal[:n_states] - setpoint * np.ones((n_states, len(t))))
     return sys, optimal_QRV, T_optimal, U_optimal.T, Y_optimal
 
@@ -94,16 +94,18 @@ def generate_dataset(results):
     valid_systems = 0
     for i, result in enumerate(results):
         if result is None: continue
-        sys, QRV, T, U_, Y_ = result
+        sys, QRV, T, U, Y = result
         # Normalize U & Y
-        U_dec = np.array([[Decimal(str(x[0])) for x in U_]])
-        U = np.array([float(2 * (x - U_dec.min()) / (U_dec.max() - U_dec.min()) - 1) for x in U_dec[0]])
-        Y = 2 * ((Y_ - Y_.min()) / (Y_.max() - Y_.min())) - 1
+        U_dec = np.array([[Decimal(str(x[0])) for x in U]])
+        Umin, Umax, Ymin, Ymax = U_dec.min(), U_dec.max(), Y.min(), Y.max()
+        U = np.array([float(2 * (x - Umin) / (Umax - Umin) - 1) for x in U_dec[0]])
+        Y = 2 * ((Y - Ymin) / (Ymax - Ymin)) - 1
         # Convert system to transfer function
         A, B, C, D = sys
         tf_sys = ct.ss2tf(A, B, C, D)
         # Save system data
-        pd.DataFrame({'numerator': [tf_sys.num[0][0]], 'denominator': [tf_sys.den[0][0]]}).to_csv(f'csv_database/system_{valid_systems}.csv', index=False)
+        pd.DataFrame({'numerator': [tf_sys.num[0][0]], 'denominator': [tf_sys.den[0][0]],
+                      'u': [Umin, Umax], 'y': [Ymin, Ymax]}).to_csv(f'csv_database/system_{valid_systems}.csv', index=False)
         # Prepare and save audio signal (limited to 1 second)
         sample_rate = 8000
         max_duration = 1  # 1 second
