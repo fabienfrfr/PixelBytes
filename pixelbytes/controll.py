@@ -6,22 +6,30 @@
 
 import numpy as np
 import control as ct
+from itertools import product
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+from scipy.ndimage import gaussian_filter1d
+from multiprocessing import Pool
+from tqdm import tqdm
+from decimal import Decimal
+import random
 import pandas as pd
 from scipy.io import wavfile
-import os
-import matplotlib.pyplot as plt
-from itertools import product
-from tqdm import tqdm
+
 
 def generate_coefficients(start, end, steps):
     return np.arange(start, end, steps)
 
 def check_system_validity(A, B, C):
     order = A.shape[0]
+    poles = np.linalg.eigvals(A)
     return (np.linalg.matrix_rank(ct.ctrb(A, B)) == order and 
-            np.linalg.matrix_rank(ct.obsv(A, C)) == order)
+            np.linalg.matrix_rank(ct.obsv(A, C)) == order and 
+            np.all(poles < 0))
 
 def generate_systems(order, coefs, d_coefs):
+    non_validity_count = 0
     for A_coefs in tqdm(product(coefs, repeat=order*order), desc=f'Order {order}'):
         A = np.array(A_coefs).reshape(order, order)
         for B_coefs in product(coefs, repeat=order):
@@ -31,79 +39,130 @@ def generate_systems(order, coefs, d_coefs):
                 for D in d_coefs:
                     if check_system_validity(A, B, C):
                         yield (A, B, C, D)
+                    else :
+                        non_validity_count+=1
+    print(f"System rejected (unstable & non-controllable+observables systems): {non_validity_count}")
 
-def solve_optimal_control(sys, t, setpoint=0.5):
-    ss_sys = ct.ss(*sys)
-    n_states = ss_sys.A.shape[0]
-    Q, R = np.eye(n_states), np.array([[1]])
-    K, _, _ = ct.lqr(ss_sys, Q, R)
-    cl_sys = ct.ss(ss_sys.A - ss_sys.B @ K, ss_sys.B * setpoint, ss_sys.C, ss_sys.D)
-    T, Y = ct.step_response(cl_sys, T=t)
-    X = ct.initial_response(cl_sys, T=t, X0=np.zeros(n_states))[1]
-    U = np.array([setpoint - K @ X[:, i] for i in range(X.shape[1])])
-    return T, U.flatten(), Y.flatten(), X, K.flatten()
+def lqg(A, B, C, D, QRV):
+    n_states = A.shape[0]
+    Q = np.diag([max(QRV[0], 1e-6)] + [1] * (n_states - 1))
+    R = np.array([[max(QRV[1], 1e-6)]])
+    V = np.diag([max(QRV[2], 1e-6)] * n_states)
+    try:
+        K, _, _ = ct.lqr(A, B, Q, R)
+        L, _, _ = ct.lqe(A, np.eye(n_states), C, V, np.array([[1]]))
+        A_cl = np.block([[A - B @ K, B @ K], [np.zeros_like(A), A - L @ C]])
+        return ct.ss(A_cl, np.vstack([B, np.zeros_like(B)]), np.hstack([C, np.zeros_like(C)]), D), K
+    except np.linalg.LinAlgError:
+        return None, None
 
-def plot_system_response(sys, t, U, y, x, setpoint, show_states=True, show_frequency=True, show_pz=True):
-    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
-    axs = axs.flatten()
-    
-    axs[0].plot(t, U.flatten())
-    axs[0].set_title('Control Input (U)')
-    
-    axs[1].plot(t, y.flatten())
-    axs[1].set_title('System Response (Y)')
-    axs[1].axhline(y=setpoint, color='r', linestyle='--', label='Setpoint')
-    axs[1].legend()
-    
-    if show_states:
-        for i in range(x.shape[0]):
-            axs[2].plot(t, x[i, :], label=f'State {i+1}')
-        axs[2].set_title('System States')
-        axs[2].legend()
-    
-    if show_frequency:
-        w, mag, _ = ct.bode(ct.ss(*sys), dB=True, Hz=True, plot=False)
-        axs[3].semilogx(w, mag)
-        axs[3].set_title('Frequency Response')
-    elif show_pz:
-        ct.pzmap(ct.ss(*sys), plot=True, ax=axs[3])
-        axs[3].set_title('Pole-Zero Map')
-    
-    for ax in axs:
-        ax.set_xlabel('Time' if ax != axs[3] else 'Frequency [Hz]')
-        ax.set_ylabel('Magnitude')
-    
-    plt.tight_layout()
-    plt.show()
+def optimize_system(args):
+    sys, T = args
+    setpoint=0.5
+    A, B, C, D = sys
+    n_states = A.shape[0]
+    def performance(QRV):
+        cl_sys, _ = lqg(A, B, C, D, QRV)
+        if cl_sys is None: return np.inf
+        try:
+            _, Y = ct.step_response(cl_sys, T=t[::50])
+            return np.mean((Y - setpoint)**2)
+        except: return np.inf
+    initial_guess = [10, 1, 1] # QRV
+    result = minimize(performance, initial_guess, method='Nelder-Mead', options={'maxiter': 100, 'xatol': 1e-3, 'fatol': 1e-3, 'adaptive': True})
+    if result.fun == np.inf: return None
+    optimal_QRV = result.x
+    cl_sys_optimal, K_optimal = lqg(A, B, C, D, optimal_QRV)
+    if cl_sys_optimal is None: return None
+    noise = np.random.normal(size=t.shape)
+    U_noise_optimal = 1 + gaussian_filter1d(noise, 2)/3.
+    T_optimal, Y_optimal, X_optimal = ct.forced_response(cl_sys_optimal, T=t, U=U_noise_optimal, return_x=True)
+    if not (0.9*setpoint < Y_optimal.mean() < 1.1*setpoint): return None
+    U_optimal = -K_optimal @ (X_optimal[:n_states] - setpoint * np.ones((n_states, len(t))))
+    return sys, optimal_QRV, T_optimal, U_optimal.T, Y_optimal
 
-def generate_dataset(systems, display_plots=False):
+def process_systems(all_systems, T, sample=None):
+    if not(sample is None) :
+        all_systems = random.sample(all_systems, sample)
+    with Pool() as p:
+        args = [(sys, T) for sys in all_systems]
+        results = list(tqdm(p.imap(optimize_system, args), total=len(args)))
+    return results
+
+def generate_dataset(results):
     os.makedirs('csv_database', exist_ok=True)
     os.makedirs('audio_database', exist_ok=True)
-    t = np.linspace(0, 10, 1000)
-    for i, sys in enumerate(systems):
-        setpoint = np.random.uniform(0.5, 1.5)
-        t, U, y, x, K = solve_optimal_control(sys, t, setpoint)
-        tf_sys = ct.ss2tf(*sys)
-        pd.DataFrame({'numerator': [tf_sys.num[0][0]], 'denominator': [tf_sys.den[0][0]]}).to_csv(f'csv_database/system_{i}.csv', index=False)
-        y_normalized = y / np.max(np.abs(y))
-        y_resampled = np.interp(np.linspace(0, t[-1], int(t[-1] * 44100)), t, y_normalized.flatten())
-        wavfile.write(f'audio_database/signal_{i}.wav', 44100, y_resampled.astype(np.float32))
-        print(f"System {i} generated and saved")
-        if display_plots:
-            plot_system_response(sys, t, U, y, x, setpoint)
+    valid_systems = 0
+    for i, result in enumerate(results):
+        if result is None: continue
+        sys, QRV, T, U_, Y_ = result
+        # Normalize U & Y
+        U_dec = np.array([[Decimal(str(x[0])) for x in U_]])
+        U = np.array([float(2 * (x - U_dec.min()) / (U_dec.max() - U_dec.min()) - 1) for x in U_dec[0]])
+        Y = 2 * ((Y_ - Y_.min()) / (Y_.max() - Y_.min())) - 1
+        # Convert system to transfer function
+        A, B, C, D = sys
+        tf_sys = ct.ss2tf(A, B, C, D)
+        # Save system data
+        pd.DataFrame({'numerator': [tf_sys.num[0][0]], 'denominator': [tf_sys.den[0][0]]}).to_csv(f'csv_database/system_{valid_systems}.csv', index=False)
+        # Prepare and save audio signal (limited to 1 second)
+        sample_rate = 8000
+        max_duration = 1  # 1 second
+        # Find the index corresponding to 1 second in the original time array
+        one_second_index = np.searchsorted(T, 1.0)
+        # Limit Y to 1 second
+        Y_limited = Y[:one_second_index]
+        T_limited = T[:one_second_index]
+        # Normalize the limited Y & Resample to exactly 1 second duration
+        y_normalized = Y_limited / np.max(np.abs(Y_limited))
+        y_resampled = np.interp(np.linspace(0, 1, sample_rate), T_limited, y_normalized)
+        # Save the audio file
+        wavfile.write(f'audio_database/signal_{valid_systems}.wav', sample_rate, y_resampled.astype(np.float32))
+        valid_systems += 1
+    print(f"Total valid systems generated and saved: {valid_systems}")
 
 if __name__ == '__main__':
-    coefs1 = generate_coefficients(-1, 1.1, 2./10.)
+    coefs1 = generate_coefficients(-1, 1.1, 5./10.)
     coefs2 = generate_coefficients(-1, 1.1, 2./3.)
-    coefs3 = generate_coefficients(0, 1.1, 1.0)
-    d_coefs = generate_coefficients(-1, 1.1, 1.0)
+    coefs3 = generate_coefficients(-0.5, +0.6, 1.)
+    d_coefs = [0] #generate_coefficients(-0.1, 0.11, 0.1)
     
     systems1 = list(generate_systems(1, coefs1, d_coefs))
-    systems2 = []#list(generate_systems(2, coefs2, d_coefs))
+    print(f"Systems 1 generated: {len(systems1)}")
+    systems2 = list(generate_systems(2, coefs2, d_coefs))
+    print(f"Systems 2 generated: {len(systems2)}")
     systems3 = list(generate_systems(3, coefs3, d_coefs))
+    print(f"Systems 3 generated: {len(systems3)}")
     
     all_systems = systems1 + systems2 + systems3
     print(f"Total systems generated: {len(all_systems)}")
     
-    generate_dataset(all_systems[:5], display_plots=True)  # Generate and plot first 5 systems
-    # generate_dataset(all_systems, display_plots=False)  # Generate all systems without plotting
+    T = np.linspace(0, 100, 1000)
+    results = process_systems(all_systems, T, sample=3)
+
+    for result in results:
+        if result is None:
+            continue
+        
+        sys, QRV, T, U_ , Y_ = result
+        
+        U_dec = np.array([[Decimal(str(x[0])) for x in U_]])
+        U = np.array([float(2 * (x - U_dec.min()) / (U_dec.max() - U_dec.min()) - 1) for x in U_dec[0]])
+        Y = 2*((Y_ - Y_.min()) / (Y_.max() - Y_.min())) - 1
+        print(sys)
+        print("Optimal Q and R values:", QRV)
+        
+        print("Time (10 values):", T[::100])
+        print("Control Input (U 10 values):", U[::100])
+        print("Output (Y 10 values):", Y[::100])
+        
+        plt.figure(figsize=(12, 6))
+        plt.plot(T,Y)
+        plt.axhline(y=0,color='r',linestyle='--',label='Setpoint')
+        plt.plot(T,U,label='Control Input')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Output / Control Input')
+        plt.legend()
+        plt.title('LQG Control Response')
+        plt.tight_layout()
+        plt.show()
