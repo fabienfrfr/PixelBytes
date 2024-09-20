@@ -3,118 +3,186 @@
 """
 @author: fabienfrfr
 """
-import numpy as np
-import control as ct
+import torch
+import os
 from itertools import product
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
-from scipy.ndimage import gaussian_filter1d
-from multiprocessing import Pool
 from tqdm import tqdm
+from multiprocessing import Pool
 from decimal import Decimal
-import random, os
 import pandas as pd
 import soundfile as sf
 from datasets import Dataset, Features, Value, Audio
 from huggingface_hub import login
+import random
 
 def generate_coefficients(start, end, steps):
-    return np.arange(start, end, steps)
+    return torch.arange(start, end, steps)
 
 def check_system_validity(A, B, C):
     order = A.shape[0]
-    poles = np.linalg.eigvals(A)
-    return (np.linalg.matrix_rank(ct.ctrb(A, B)) == order and 
-            np.linalg.matrix_rank(ct.obsv(A, C)) == order and 
-            np.all(poles < 0))
+    poles = torch.linalg.eigvals(A).real
+    ctrb = torch.cat([B] + [torch.matrix_power(A, i) @ B for i in range(1, order)], dim=1)
+    obsv = torch.cat([C] + [C @ torch.matrix_power(A, i) for i in range(1, order)], dim=0)
+    return (torch.linalg.matrix_rank(ctrb) == order and 
+            torch.linalg.matrix_rank(obsv) == order and 
+            torch.all(poles < 0))
 
 def generate_systems(order, coefs, d_coefs):
     non_validity_count = 0
     for A_coefs in tqdm(product(coefs, repeat=order*order), desc=f'Order {order}'):
-        A = np.array(A_coefs).reshape(order, order)
+        A = torch.tensor(A_coefs, dtype=torch.float).reshape(order, order)
         for B_coefs in product(coefs, repeat=order):
-            B = np.array(B_coefs).reshape(order, 1)
+            B = torch.tensor(B_coefs, dtype=torch.float).reshape(order, 1)
             for C_coefs in product(coefs, repeat=order):
-                C = np.array(C_coefs).reshape(1, order)
+                C = torch.tensor(C_coefs, dtype=torch.float).reshape(1, order)
                 for D in d_coefs:
                     if check_system_validity(A, B, C):
-                        yield (A, B, C, D)
-                    else :
-                        non_validity_count+=1
+                        yield (A, B, C, torch.tensor([[D]], dtype=torch.float))
+                    else:
+                        non_validity_count += 1
     print(f"System rejected (unstable & non-controllable+observables systems): {non_validity_count}")
+
+def lqr(A, B, Q, R):
+    """Linear Quadratic Regulator design"""
+    n = A.shape[0]
+    P = torch.eye(n)
+    for _ in range(100):  # Fixed-point iteration
+        P_new = A.T @ P @ A - A.T @ P @ B @ torch.inverse(R + B.T @ P @ B) @ B.T @ P @ A + Q
+        if torch.allclose(P, P_new):
+            break
+        P = P_new
+    K = torch.inverse(R + B.T @ P @ B) @ B.T @ P @ A
+    return K, P
+
+def lqe(A, G, C, V, W):
+    """Linear Quadratic Estimator design"""
+    n = A.shape[0]
+    P = torch.eye(n)
+    for _ in range(100):  # Fixed-point iteration
+        P_new = A @ P @ A.T - A @ P @ C.T @ torch.inverse(W + C @ P @ C.T) @ C @ P @ A.T + G @ V @ G.T
+        if torch.allclose(P, P_new):
+            break
+        P = P_new
+    L = P @ C.T @ torch.inverse(W + C @ P @ C.T)
+    return L, P
 
 def lqg(A, B, C, D, QRV):
     n_states = A.shape[0]
-    Q = np.diag([max(QRV[0], 1e-6)] + [1] * (n_states - 1))
-    R = np.array([[max(QRV[1], 1e-6)]])
-    V = np.diag([max(QRV[2], 1e-6)] * n_states)
+    Q = torch.diag(torch.tensor([max(QRV[0], 1e-6)] + [1.] * (n_states - 1)))
+    R = torch.tensor([[max(QRV[1], 1e-6)]])
+    V = torch.diag(torch.tensor([max(QRV[2], 1e-6)] * n_states))
     try:
-        K, _, _ = ct.lqr(A, B, Q, R)
-        L, _, _ = ct.lqe(A, np.eye(n_states), C, V, np.array([[1]]))
-        A_cl = np.block([[A - B @ K, B @ K], [np.zeros_like(A), A - L @ C]])
-        return ct.ss(A_cl, np.vstack([B, np.zeros_like(B)]), np.hstack([C, np.zeros_like(C)]), D), K
-    except np.linalg.LinAlgError:
+        K, _ = lqr(A, B, Q, R)
+        L, _ = lqe(A, torch.eye(n_states), C, V, torch.tensor([[1.]]))
+        A_cl = torch.block_diag(A - B @ K, A - L @ C)
+        B_cl = torch.vstack([B, torch.zeros_like(B)])
+        C_cl = torch.hstack([C, torch.zeros_like(C)])
+        return (A_cl, B_cl, C_cl, D), K
+    except:
         return None, None
+
+def forced_response(A, B, C, D, T, U):
+    n = len(T)
+    x = torch.zeros((A.shape[0], n))
+    y = torch.zeros((C.shape[0], n))
+    I = torch.eye(A.shape[0])
+    for i in range(1, n):
+        dt = T[i] - T[i-1]
+        # Semi-implicit Euler method
+        x[:, i] = torch.linalg.solve(I - dt * A, x[:, i-1] + dt * B @ U[:, i-1])
+        y[:, i] = C @ x[:, i] + D @ U[:, i]
+    return T, y, x
+
+def gaussian_filter1d(input, sigma):
+    kernel_size = int(4 * sigma + 1)
+    kernel = torch.exp(-torch.arange(-kernel_size//2 + 1, kernel_size//2 + 1)**2 / (2*sigma**2))
+    kernel = kernel / kernel.sum()
+    padding = kernel_size//2
+    padded_input = torch.nn.functional.pad(input, (padding, padding), mode='reflect')
+    return torch.nn.functional.conv1d(padded_input.unsqueeze(0).unsqueeze(0), kernel.unsqueeze(0).unsqueeze(0)).squeeze()
 
 def optimize_system(args):
     sys, T = args
-    setpoint=0.5
+    setpoint = 0.5
     A, B, C, D = sys
     n_states = A.shape[0]
+    
+    U_step = torch.ones((B.shape[1], len(T)), requires_grad=True)
     def performance(QRV):
         cl_sys, _ = lqg(A, B, C, D, QRV)
-        if cl_sys is None: return np.inf
+        if cl_sys is None: return torch.tensor(float('inf'))
         try:
-            _, Y = ct.step_response(cl_sys, T=T[::50])
-            return np.mean((Y - setpoint)**2)
-        except: return np.inf
-    initial_guess = [10, 1, 1] # QRV
-    result = minimize(performance, initial_guess, method='Nelder-Mead', options={'maxiter': 100, 'xatol': 1e-3, 'fatol': 1e-3, 'adaptive': True})
-    if result.fun == np.inf: return None
-    optimal_QRV = result.x
+            _, Y, _ = forced_response(*cl_sys, T[::50], U_step[::50])
+            return torch.mean((Y - setpoint)**2)
+        except:
+            return torch.tensor(float('inf'))
+    
+    QRV = torch.tensor([10., 1., 1.], requires_grad=True, dtype=torch.float32)
+    optimizer = torch.optim.Adam([QRV], lr=0.01)
+    with torch.set_grad_enabled(True):
+        for _ in range(10):
+            optimizer.zero_grad()
+            loss = performance(QRV)
+            loss.backward()
+            optimizer.step()
+    optimal_QRV = QRV.detach()
     cl_sys_optimal, K_optimal = lqg(A, B, C, D, optimal_QRV)
     if cl_sys_optimal is None: return None
-    noise = np.random.normal(size=T.shape)
-    U_noise_optimal = 1 + gaussian_filter1d(noise, 2)/3.
-    T_optimal, Y_optimal, X_optimal = ct.forced_response(cl_sys_optimal, T=T, U=U_noise_optimal, return_x=True)
+    noise = torch.randn(T.shape)[None]
+    U_noise_optimal = 1 + noise/3. #gaussian_filter1d(noise, 2)/3.
+    T_optimal, Y_optimal, X_optimal = forced_response(*cl_sys_optimal, T, U_noise_optimal)
     if not (0.5*setpoint < Y_optimal.mean() < 1.5*setpoint): return None
-    U_optimal = -K_optimal @ (X_optimal[:n_states] - setpoint * np.ones((n_states, len(T))))
+    U_optimal = -K_optimal @ (X_optimal[:n_states] - setpoint * torch.ones((n_states, len(T))))
     return sys, optimal_QRV, T_optimal, U_optimal.T, Y_optimal
 
 def process_systems(all_systems, T, sample=None):
-    if not(sample is None) :
+    if sample is not None:
         all_systems = random.sample(all_systems, sample)
+    results = []
+    for sys in tqdm(all_systems, total=len(all_systems)):
+        result = optimize_system((sys, T))
+        results.append(result)
+    """ # OLD
     with Pool() as p:
         args = [(sys, T) for sys in all_systems]
         results = list(tqdm(p.imap(optimize_system, args), total=len(args)))
+    """
     return results
 
 def generate_dataset(results):
     os.makedirs('csv_database', exist_ok=True)
     os.makedirs('audio_database', exist_ok=True)
     valid_systems = 0
-    for i, result in enumerate(results):
+    for result in results:
         if result is None: continue
         sys, QRV, T, U, Y = result
-        # Normalize U & Y
-        U_dec = np.array([[Decimal(str(x[0])) for x in U]])
-        Umin, Umax, Ymin, Ymax = U_dec.min(), U_dec.max(), Y.min(), Y.max()
-        U = np.array([float(2 * (x - Umin) / (Umax - Umin) - 1) for x in U_dec[0]])
-        Y = 2 * ((Y - Ymin) / (Ymax - Ymin)) - 1
-        # Convert system to transfer function
         A, B, C, D = sys
-        tf_sys = ct.ss2tf(A, B, C, D)
-        # Save system data
-        pd.DataFrame({'numerator': [tf_sys.num[0][0].tolist()], 'denominator': [tf_sys.den[0][0].tolist()], "QRV (LQG)": [QRV.tolist()],
-                      'u': [[float(Umin), float(Umax)]], 'y': [[Ymin, Ymax]]}).to_csv(f'csv_database/{valid_systems}.csv', index=False)
-        # Prepare and save audio signal
-        sample_rate = 16000
-        stereo = np.column_stack((U, Y))
-        # Save as OGG
-        sf.write(f'audio_database/{valid_systems}.ogg', stereo, sample_rate, format='ogg', subtype='vorbis')
+        n = A.shape[0]
+        # Ensure U and Y are 1D tensors
+        U, Y = U.flatten(), Y.flatten()
+        # Normalize U and Y
+        U = 2 * ((U - U.min()) / (U.max() - U.min())) - 1
+        Y = 2 * ((Y - Y.min()) / (Y.max() - Y.min())) - 1
+        # Calculate transfer function coefficients
+        num = torch.tensor([C @ torch.linalg.matrix_power(A, i) @ B for i in range(n)]).flatten()
+        den = torch.zeros(n + 1, dtype=A.dtype, device=A.device)
+        den[-1] = 1
+        for k in range(1, n + 1):
+            den[n-k] = -torch.trace(torch.linalg.matrix_power(A, k)) / k
+        # Save CSV
+        pd.DataFrame({
+            'numerator': [num.tolist()],
+            'denominator': [den.tolist()],
+            "QRV (LQG)": [QRV.tolist()],
+            'u': [[float(U.min()), float(U.max())]],
+            'y': [[float(Y.min()), float(Y.max())]]
+        }).to_csv(f'csv_database/{valid_systems}.csv', index=False)
+        # Save audio
+        sf.write(f'audio_database/{valid_systems}.ogg', torch.stack((U, Y), dim=1).numpy(), 16000, format='ogg', subtype='vorbis')
         valid_systems += 1
     print(f"Total valid systems generated and saved: {valid_systems}")
-
+    
 def create_audio_dataset(dataset_dir=os.getcwd()):
     # Get file lists
     audio = os.listdir(os.path.join(dataset_dir,"audio_database"))
@@ -134,13 +202,14 @@ def push_control_to_hub(dataset, repo_name='PixelBytes-Control'):
     # Push to Hub
     dataset.push_to_hub(repo_name)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    ## DATASET
     coefs1 = generate_coefficients(-1, 1.1, 5./10.)
     coefs2 = generate_coefficients(-1, 1.1, 2./3.)
     coefs3 = generate_coefficients(-0.5, +0.6, 1.)
-    d_coefs = [0] #generate_coefficients(-0.1, 0.11, 0.1)
+    d_coefs = [0.] #generate_coefficients(-0.1, 0.11, 0.1)
     
-    systems1 = list(generate_systems(1, coefs1, d_coefs))
+    systems1 = []#list(generate_systems(1, coefs1, d_coefs))
     print(f"Systems 1 generated: {len(systems1)}")
     systems2 = []#list(generate_systems(2, coefs2, d_coefs))
     print(f"Systems 2 generated: {len(systems2)}")
@@ -150,9 +219,6 @@ if __name__ == '__main__':
     all_systems = systems1 + systems2 + systems3
     print(f"Total systems generated: {len(all_systems)}")
     
-    T = np.linspace(0, 100, 1000)
-    results = process_systems(all_systems, T, sample=3)
-
-    generate_dataset(results)
-    dataset = create_audio_dataset()
-        
+    T = torch.linspace(0, 10, 1000)
+    results = process_systems(all_systems, T, sample=100)
+    #generate_dataset(results)
