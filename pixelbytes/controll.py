@@ -14,8 +14,9 @@ from tqdm import tqdm
 from decimal import Decimal
 import random, os
 import pandas as pd
-from scipy.io import wavfile
-
+import soundfile as sf
+from datasets import Dataset, Features, Value, Audio
+from huggingface_hub import login
 
 def generate_coefficients(start, end, steps):
     return np.arange(start, end, steps)
@@ -104,23 +105,34 @@ def generate_dataset(results):
         A, B, C, D = sys
         tf_sys = ct.ss2tf(A, B, C, D)
         # Save system data
-        pd.DataFrame({'numerator': [tf_sys.num[0][0]], 'denominator': [tf_sys.den[0][0]],
-                      'u': [[Umin, Umax]], 'y': [[Ymin, Ymax]]}).to_csv(f'csv_database/system_{valid_systems}.csv', index=False)
-        # Prepare and save audio signal (limited to 1 second)
-        sample_rate = 8000
-        max_duration = 1  # 1 second
-        # Find the index corresponding to 1 second in the original time array
-        one_second_index = np.searchsorted(T, 1.0)
-        # Limit Y to 1 second
-        Y_limited = Y[:one_second_index]
-        T_limited = T[:one_second_index]
-        # Normalize the limited Y & Resample to exactly 1 second duration
-        y_normalized = Y_limited / np.max(np.abs(Y_limited))
-        y_resampled = np.interp(np.linspace(0, 1, sample_rate), T_limited, y_normalized)
-        # Save the audio file
-        wavfile.write(f'audio_database/signal_{valid_systems}.wav', sample_rate, y_resampled.astype(np.float32))
+        pd.DataFrame({'numerator': [tf_sys.num[0][0].tolist()], 'denominator': [tf_sys.den[0][0].tolist()], "QRV (LQG)": [QRV.tolist()],
+                      'u': [[float(Umin), float(Umax)]], 'y': [[Ymin, Ymax]]}).to_csv(f'csv_database/{valid_systems}.csv', index=False)
+        # Prepare and save audio signal
+        sample_rate = 16000
+        stereo = np.column_stack((U, Y))
+        # Save as OGG
+        sf.write(f'audio_database/{valid_systems}.ogg', stereo, sample_rate, format='ogg', subtype='vorbis')
         valid_systems += 1
     print(f"Total valid systems generated and saved: {valid_systems}")
+
+def create_audio_dataset(dataset_dir=os.getcwd()):
+    # Get file lists
+    audio = os.listdir(os.path.join(dataset_dir,"audio_database"))
+    idx = [os.path.splitext(a)[0] for a in audio]
+    # Create data dictionary
+    data = {
+        "audio": [os.path.join(dataset_dir, "audio_database", f"{i}.ogg") for i in idx],
+        "text": [open(os.path.join(dataset_dir, "csv_database", f"{i}.csv"), 'r').read().strip() for i in idx]
+    } # Create and cast dataset
+    dataset = Dataset.from_dict(data)
+    features = Features({"audio": Audio(sampling_rate=16000,mono=False), "text": Value("string")})
+    return dataset.cast(features)
+
+def push_control_to_hub(dataset, repo_name='PixelBytes-Control'):
+    token = input("Please enter your Hugging Face token: ")
+    login(token=token)
+    # Push to Hub
+    dataset.push_to_hub(repo_name)
 
 if __name__ == '__main__':
     coefs1 = generate_coefficients(-1, 1.1, 5./10.)
@@ -130,7 +142,7 @@ if __name__ == '__main__':
     
     systems1 = list(generate_systems(1, coefs1, d_coefs))
     print(f"Systems 1 generated: {len(systems1)}")
-    systems2 = list(generate_systems(2, coefs2, d_coefs))
+    systems2 = []#list(generate_systems(2, coefs2, d_coefs))
     print(f"Systems 2 generated: {len(systems2)}")
     systems3 = list(generate_systems(3, coefs3, d_coefs))
     print(f"Systems 3 generated: {len(systems3)}")
@@ -142,5 +154,5 @@ if __name__ == '__main__':
     results = process_systems(all_systems, T, sample=3)
 
     generate_dataset(results)
-
+    dataset = create_audio_dataset()
         
