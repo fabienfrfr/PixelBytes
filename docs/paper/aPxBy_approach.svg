@@ -32,7 +32,7 @@
      fit-margin-right="0"
      fit-margin-bottom="0"
      inkscape:zoom="4.109671"
-     inkscape:cx="693.12119"
+     inkscape:cx="723.53724"
      inkscape:cy="339.32157"
      inkscape:window-width="1850"
      inkscape:window-height="1016"
@@ -50,6 +50,20 @@
   </sodipodi:namedview>
   <defs
      id="defs2">
+    <marker
+       style="overflow:visible"
+       id="DotS"
+       refX="0.0"
+       refY="0.0"
+       orient="auto"
+       inkscape:stockid="DotS"
+       inkscape:isstock="true">
+      <path
+         transform="scale(0.2) translate(7.4, 1)"
+         style="fill-rule:evenodd;fill:context-stroke;stroke:context-stroke;stroke-width:1.0pt"
+         d="M -2.5,-1.0 C -2.5,1.7600000 -4.7400000,4.0 -7.5,4.0 C -10.260000,4.0 -12.5,1.7600000 -12.5,-1.0 C -12.5,-3.7600000 -10.260000,-6.0 -7.5,-6.0 C -4.7400000,-6.0 -2.5,-3.7600000 -2.5,-1.0 z "
+         id="path1778" />
+    </marker>
     <marker
        style="overflow:visible"
        id="TriangleInM"
@@ -2432,7 +2446,7 @@
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.327711;stroke-linecap:butt;stroke-linejoin:round"
        id="rect11025-9-1-6"
-       width="42.545765"
+       width="42.546001"
        height="41.296955"
        x="204.86546"
        y="99.168793"
@@ -3070,5 +3084,28 @@
        d="m 210.34375,103.18751 h 10.58333 l -10.58333,5.29166 5.29167,0"
        id="path1594"
        sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#DotS)"
+       d="m 231.51041,121.70834 -3.96875,2.64583"
+       id="path1709" />
+    <text
+       xml:space="preserve"
+       style="font-size:1.41111px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:0.0544297;stroke-linecap:butt;stroke-linejoin:round"
+       x="232.20107"
+       y="120.67905"
+       id="text7563-2-1-7-1-9-8-5-1-3-3"
+       inkscape:export-filename="/home/fabien/Documents/GIT/PixelBytes/docs/paper/example_generation.png"
+       inkscape:export-xdpi="384"
+       inkscape:export-ydpi="384"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:1.41111px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.0544297"
+         x="232.20107"
+         y="120.67905"
+         id="tspan2216">image line</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:1.41111px;font-family:cmr10;-inkscape-font-specification:cmr10;stroke-width:0.0544297"
+         x="232.20107"
+         y="122.46281"
+         id="tspan7732">transition token</tspan></text>
   </g>
 </svg>
