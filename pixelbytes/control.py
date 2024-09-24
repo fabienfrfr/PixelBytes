@@ -31,7 +31,7 @@ class ControlSystem(nn.Module):
         self.n_states, self.n_inputs, self.n_outputs = n_states, n_inputs, n_outputs
         self.params = nn.Parameter(torch.tensor([1., 1., 1.], dtype=torch.float32))
         self.debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
-        self.methods = {'lqg': self.lqg, 'mpc': self.mpc, 'smc': self.smc}
+        self.methods = {'lqg': self.lqg, 'mpc': self.mpc, 'smc': self.smc} # ADDING TRAINED NN
         self.solvers = {'euler_adaptive': self._euler_adaptive, 'crank_nicolson': self._crank_nicolson}
 
     def debug_warn(self, message): 
@@ -131,7 +131,8 @@ class ControlSystem(nn.Module):
     def system_response(self, cl_sys, t, u, x0=None, solver='crank_nicolson'):
         A, B, C, D = cl_sys
         if x0 is None: x0 = torch.zeros(A.shape[0], device=A.device)
-        y, x = self.solvers[solver](A, B, C, D, u, x0, t) # in dev (separate in 2 block to get output controler)
+        # in dev (separate in 2 block to get output controler) --> add NN control and yield for dynamic control (temporary : use Gym-setpoint library for test)
+        y, x = self.solvers[solver](A, B, C, D, u, x0, t) $
         self.debug_warn(f"System response: y shape: {y.shape}, x shape: {x.shape}")
         return y, x
 
