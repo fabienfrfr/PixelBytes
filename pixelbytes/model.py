@@ -98,8 +98,9 @@ class aPxBySequenceModel(PreTrainedModel):
         batch_size, seq_len, _ = x.shape
         x = self.embedding(x).view(batch_size, seq_len, -1)
         if self.diffusion : # ARDM-like training
-            if t is None: t = torch.randint(0, self.num_diffusion_steps, (batch_size,))
-            if m is None: m = torch.randint(0, 2, x.shape[:2]).unsqueeze(-1)
+            device = x.device
+            if t is None: t = torch.randint(0, self.num_diffusion_steps, (batch_size,), device=device)
+            if m is None: m = torch.randint(0, 2, x.shape[:2], device=device).unsqueeze(-1)
             alpha_t, noise = torch.cos(t / self.num_diffusion_steps * np.pi / 2)[:, None, None], torch.randn_like(x)
             x = torch.where(m == 1, x, (1 - alpha_t) * noise) # +  alpha_t * x)
         x, _ = self.sequence_model(x)
