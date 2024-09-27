@@ -102,7 +102,7 @@ class aPxBySequenceModel(PreTrainedModel):
             if t is None: t = torch.randint(0, self.num_diffusion_steps, (batch_size,), device=device)
             if m is None: m = torch.randint(0, 2, x.shape[:2], device=device).unsqueeze(-1)
             alpha_t, noise = torch.cos(t / self.num_diffusion_steps * np.pi / 2)[:, None, None], torch.randn_like(x)
-            x = torch.where(m == 1, x, (1 - alpha_t) * noise) # +  alpha_t * x)
+            x = torch.where(m == 1, x, (1 - alpha_t) * noise +  alpha_t * x)
         x, _ = self.sequence_model(x)
         x = self.fc(x) # Shape: (batch_size, seq_len, vocab_size*pxby) or (batch_size, seq_len, vocab_size)
         return x.view(batch_size, seq_len, self.pxby_dim, -1) if self.auto_regressive else x
