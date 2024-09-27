@@ -132,7 +132,7 @@ class ControlSystem(nn.Module):
         A, B, C, D = cl_sys
         if x0 is None: x0 = torch.zeros(A.shape[0], device=A.device)
         # in dev (separate in 2 block to get output controler) --> add NN control and yield for dynamic control (temporary : use Gym-setpoint library for test)
-        y, x = self.solvers[solver](A, B, C, D, u, x0, t) $
+        y, x = self.solvers[solver](A, B, C, D, u, x0, t)
         self.debug_warn(f"System response: y shape: {y.shape}, x shape: {x.shape}")
         return y, x
 
