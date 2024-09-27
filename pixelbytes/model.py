@@ -66,19 +66,20 @@ def collate_fn(batch):
 
 ## Model and training
 class ModelConfig(PretrainedConfig):
-    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, 
-                 auto_regressive=True, diffusion=False, num_diffusion_steps=10, model_type="lstm", **kwargs):
+    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, bidirectionnal=False,
+                 auto_regressive=True, diffusion=False, num_diffusion_steps=5, model_type="lstm", **kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.pxby_dim = pxby_dim
         self.pxby_emb = embed_size // self.pxby_dim
-        self.embed_size = int(self.pxby_emb * self.pxby_dim)
+        self.bidirection = bidirectionnal
+        self.embed_size = int(self.pxby_emb * self.pxby_dim) 
         self.auto_regressive = auto_regressive
         self.diffusion = diffusion # not tested
         self.num_diffusion_steps = num_diffusion_steps # not tested
         self.model_type = model_type # Don't forget mask if you want to use transformer
-        self.hidden_size = hidden_size
+        self.hidden_size = hidden_size // (1 + bidirectionnal)
 
 class aPxBySequenceModel(PreTrainedModel):
     config_class = ModelConfig
@@ -88,18 +89,19 @@ class aPxBySequenceModel(PreTrainedModel):
         super().__init__(config)
         self.embedding = nn.Embedding(config.vocab_size, config.pxby_emb, padding_idx=0)
         if config.model_type != "lstm": self.sequence_model = model_type(**config)
-        else: self.sequence_model = nn.LSTM(config.embed_size, config.hidden_size, config.num_layers, batch_first=True)
-        self.fc = nn.Linear(config.hidden_size, config.vocab_size * (config.pxby_dim if config.auto_regressive else 1))
+        else: self.sequence_model = nn.LSTM(config.embed_size, config.hidden_size, config.num_layers, bidirectional=config.bidirection, batch_first=True)
+        self.fc = nn.Linear(config.hidden_size * (1 + config.bidirection), config.vocab_size * (config.pxby_dim if config.auto_regressive else 1))
         self.pxby_dim, self.model_type, self.num_diffusion_steps = config.pxby_dim, config.model_type, config.num_diffusion_steps
         self.auto_regressive, self.diffusion = config.auto_regressive, config.diffusion
 
-    def forward(self, x, t=None):
+    def forward(self, x, t=None,m=None):
         batch_size, seq_len, _ = x.shape
         x = self.embedding(x).view(batch_size, seq_len, -1)
-        if self.diffusion : # ARDM training
+        if self.diffusion : # ARDM-like training
             if t is None: t = torch.randint(0, self.num_diffusion_steps, (batch_size,))
-            alpha_t = torch.cos(t / self.num_diffusion_steps * np.pi / 2)[:, None, None]
-            x = alpha_t * x + (1 - alpha_t) * torch.randn_like(x) # (not trained)
+            if m is None: m = torch.randint(0, 2, x.shape[:2]).unsqueeze(-1)
+            alpha_t, noise = torch.cos(t / self.num_diffusion_steps * np.pi / 2)[:, None, None], torch.randn_like(x)
+            x = torch.where(m == 1, x, (1 - alpha_t) * noise) # +  alpha_t * x)
         x, _ = self.sequence_model(x)
         x = self.fc(x) # Shape: (batch_size, seq_len, vocab_size*pxby) or (batch_size, seq_len, vocab_size)
         return x.view(batch_size, seq_len, self.pxby_dim, -1) if self.auto_regressive else x
@@ -115,18 +117,20 @@ class aPxBySequenceModel(PreTrainedModel):
             current_input[:, -(i+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
             return current_input
 
-    def generate(self, input_ids, num_generate, temperature=1.0):
+    def generate(self, input_ids, num_generate, temperature=1.0, position=None):
         self.eval()
         with torch.no_grad():
             current_input = input_ids.clone()
-            for i in range(num_generate): # Generate next token
-                outputs = self(current_input)
-                if self.diffusion: # ARDM generation process
+            batch_size, seq_len = current_input.shape[:2]
+            for i in range(num_generate): # Generate next token or special position (for example in setpoint-control)
+                if self.diffusion: # not working for now
+                    pos = position if position is not None else torch.randint(0, seq_len, (batch_size,))
                     for t in reversed(range(self.num_diffusion_steps)): 
                         t_tensor = torch.full((current_input.shape[0],), t)
                         outputs = self(current_input, t_tensor)
-                        current_input = self._process_probs(outputs, temperature, current_input, i)
-                else : # Original generation process
+                        current_input[:, pos] = self._process_probs(outputs, temperature, current_input, pos)
+                else :
+                    outputs = self(current_input)
                     current_input = self._process_probs(outputs, temperature, current_input, i)
             return current_input
 
@@ -186,8 +190,9 @@ if __name__ == '__main__':
     #from tokenizer import ActionPixelBytesTokenizer
     #from datasets import load_dataset
     ## some test in test.py file (here very basic)
+    config = ModelConfig(diffusion=True, bidirectionnal=True)
     model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-Pokemon", subfolder="lstm_autoregressive_last")
+    #model = aPxBySequenceModel(config)
     input_tensor = torch.randint(0, 151, (1, 1024, 6))
-    #model.diffusion = True
-    output_tensor = model.generate(input_tensor, 10) # inconsistent with noise (diffusion uncomment)
+    output_tensor = model.generate(input_tensor, 3) # inconsistent with noise (diffusion uncomment)
     print(output_tensor)
