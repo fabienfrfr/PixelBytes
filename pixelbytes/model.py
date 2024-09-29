@@ -67,18 +67,19 @@ def collate_fn(batch):
 ## Model and training
 class ModelConfig(PretrainedConfig):
     def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, 
-                 bidirectionnal=False, objective=1, num_diffusion_steps=5, model_type="lstm", **kwargs):
+                 bidirection=False, objective=1, num_diffusion_steps=5, model_type="lstm", custom_model=None, **kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.pxby_dim = pxby_dim
         self.pxby_emb = embed_size // self.pxby_dim
-        self.bidirection = bidirectionnal
+        self.bidirection = bidirection
         self.embed_size = int(self.pxby_emb * self.pxby_dim) 
-        self.objective = ["predict","autoregressive","diffusion"][objective]
+        self.objective = ["predict","autoregressive","diffusion"][objective] if isinstance(objective, int) else objective # crafts
         self.num_diffusion_steps = num_diffusion_steps
         self.model_type = model_type # Don't forget mask if you want to use transformer
-        self.hidden_size = hidden_size // (1 + bidirectionnal)
+        self.custom_model = custom_model
+        self.hidden_size = hidden_size // (1 + bidirection) if isinstance(objective, int) else hidden_size # crafts
 
 class aPxBySequenceModel(PreTrainedModel):
     config_class = ModelConfig
@@ -87,7 +88,7 @@ class aPxBySequenceModel(PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.embedding = nn.Embedding(config.vocab_size, config.pxby_emb, padding_idx=0)
-        if config.model_type != "lstm": self.sequence_model = model_type(**config)
+        if config.model_type != "lstm": self.sequence_model = config.custom_model(**config)
         else: self.sequence_model = nn.LSTM(config.embed_size, config.hidden_size, config.num_layers, bidirectional=config.bidirection, batch_first=True)
         self.fc = nn.Linear(config.hidden_size * (1 + config.bidirection), config.vocab_size * (1 if config.objective=="predict" else config.pxby_dim))
         self.pxby_dim, self.num_diffusion_steps = config.pxby_dim, config.num_diffusion_steps
@@ -100,36 +101,43 @@ class aPxBySequenceModel(PreTrainedModel):
             device = x.device
             if t is None: t = torch.randint(0, self.num_diffusion_steps+1, (batch_size,), device=device)
             if m is None: m = torch.randint(0, 2, x.shape[:2], device=device).unsqueeze(-1)
-            alpha_t, noise = torch.cos(t / self.num_diffusion_steps * np.pi / 2)[:, None, None], torch.randn_like(x)
+            alpha_t, noise = torch.cos((t / self.num_diffusion_steps) * (np.pi / 2))[:, None, None], torch.randn_like(x)
             x = torch.where(m == 1, x, (1 - alpha_t) * noise +  alpha_t * x)
         x, _ = self.sequence_model(x)
         x = self.fc(x) # Shape: (batch_size, seq_len, vocab_size*pxby) or (batch_size, seq_len, vocab_size)
         return x if self.objective=="predict" else x.view(batch_size, seq_len, self.pxby_dim, -1)
 
-    def _process_probs(self, outputs, temperature, current_input, i=None):
+    def _process_probs(self, outputs, temperature, current_input, pos=None):
         if self.objective == "predict":
             probs = torch.softmax(outputs[:, -1] / temperature, dim=-1)
             next_token = torch.multinomial(probs, num_samples=1)
-            current_input[:, -(i+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
+            current_input[:, -(pos+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
             return current_input
+        elif self.objective == "diffusion":
+            probs = torch.softmax(outputs[:, pos].view(-1, self.config.vocab_size) / temperature, dim=-1)
+            pos_token = torch.multinomial(probs, num_samples=1).view(1, 1, -1)
+            current_input[:, pos] = pos_token
+            return current_input    
         else : # Reshape outputs to [1, vocab_size], apply softmax and sample from prob distribution
             probs = torch.softmax(outputs[:, -1].view(-1, self.config.vocab_size) / temperature, dim=-1)
             next_token = torch.multinomial(probs, num_samples=1).view(1, 1, -1)
             return torch.cat([current_input, next_token], dim=1) # true generator
 
-    def generate(self, input_ids, num_generate, temperature=1.0, position=None):
+    def generate(self, input_ids, idn_generator=None, temperature=1.0):
         self.eval()
         with torch.no_grad():
             current_input = input_ids.clone()
             batch_size, seq_len = current_input.shape[:2]
-            for i in range(num_generate): # Generate next token or special position (for example in setpoint-control)
-                if self.objective == "diffusion": # not working for now
-                    pos = position if position is not None else torch.randint(0, seq_len, (batch_size,))
-                    for t in reversed(range(self.num_diffusion_steps)): 
-                        t_tensor = torch.full((current_input.shape[0],), t)
-                        outputs = self(current_input, t_tensor)
-                        current_input[:, pos] = self._process_probs(outputs, temperature, current_input, pos)
-                else :
+            if self.objective == "diffusion" : # Generate specific position (setpoint in control problem)
+                position = idn_generator if idn_generator is not None else torch.randint(0, seq_len, (batch_size,), device=input_ids.device).unsqueeze(-1)
+                mask = torch.ones((batch_size, seq_len)).unsqueeze(-1); mask[:,position] = 0
+                for t in reversed(range(self.num_diffusion_steps)):
+                    t_tensor = torch.full((batch_size,), t, device=input_ids.device)
+                    outputs = self(current_input, t_tensor, mask)
+                    current_input = self._process_probs(outputs, temperature, current_input, position)
+            else :
+                idn_generator = idn_generator if idn_generator is not None else 10
+                for i in range(idn_generator): # Generate next token
                     outputs = self(current_input)
                     current_input = self._process_probs(outputs, temperature, current_input, i)
             return current_input
@@ -193,9 +201,10 @@ if __name__ == '__main__':
     #from tokenizer import ActionPixelBytesTokenizer
     #from datasets import load_dataset
     ## some test in test.py file (here very basic)
-    config = ModelConfig(objective=1, bidirectionnal=True)
+    config = ModelConfig(objective=1, bidirection=True)
     #model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-Pokemon", subfolder="lstm_autoregressive_last")
-    model = aPxBySequenceModel(config)
+    model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-OptimalControl", subfolder="bilstm_diffusion_last")#, ignore_mismatched_sizes=True)
+    #model = aPxBySequenceModel(config)
     input_tensor = torch.randint(0, 151, (1, 1024, 6))
-    output_tensor = model.generate(input_tensor, 3) # inconsistent with noise (diffusion uncomment)
-    print(output_tensor, output_tensor.shape)
+    output_tensor = model.generate(input_tensor) # inconsistent with noise (diffusion uncomment)
+    print(input_tensor, output_tensor, output_tensor.shape)
