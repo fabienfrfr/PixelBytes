@@ -66,8 +66,8 @@ def collate_fn(batch):
 
 ## Model and training
 class ModelConfig(PretrainedConfig):
-    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, bidirectionnal=False,
-                 auto_regressive=True, diffusion=False, num_diffusion_steps=5, model_type="lstm", **kwargs):
+    def __init__(self, vocab_size=2048, embed_size=256, hidden_size=512, num_layers=2, pxby_dim=6, 
+                 bidirectionnal=False, objective=1, num_diffusion_steps=5, model_type="lstm", **kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.num_layers = num_layers
@@ -75,9 +75,8 @@ class ModelConfig(PretrainedConfig):
         self.pxby_emb = embed_size // self.pxby_dim
         self.bidirection = bidirectionnal
         self.embed_size = int(self.pxby_emb * self.pxby_dim) 
-        self.auto_regressive = auto_regressive
-        self.diffusion = diffusion # not tested
-        self.num_diffusion_steps = num_diffusion_steps # not tested
+        self.objective = ["predict","autoregressive","diffusion"][objective]
+        self.num_diffusion_steps = num_diffusion_steps
         self.model_type = model_type # Don't forget mask if you want to use transformer
         self.hidden_size = hidden_size // (1 + bidirectionnal)
 
@@ -90,33 +89,33 @@ class aPxBySequenceModel(PreTrainedModel):
         self.embedding = nn.Embedding(config.vocab_size, config.pxby_emb, padding_idx=0)
         if config.model_type != "lstm": self.sequence_model = model_type(**config)
         else: self.sequence_model = nn.LSTM(config.embed_size, config.hidden_size, config.num_layers, bidirectional=config.bidirection, batch_first=True)
-        self.fc = nn.Linear(config.hidden_size * (1 + config.bidirection), config.vocab_size * (config.pxby_dim if config.auto_regressive else 1))
-        self.pxby_dim, self.model_type, self.num_diffusion_steps = config.pxby_dim, config.model_type, config.num_diffusion_steps
-        self.auto_regressive, self.diffusion = config.auto_regressive, config.diffusion
+        self.fc = nn.Linear(config.hidden_size * (1 + config.bidirection), config.vocab_size * (1 if config.objective=="predict" else config.pxby_dim))
+        self.pxby_dim, self.num_diffusion_steps = config.pxby_dim, config.num_diffusion_steps
+        self.objective, self.model_type = config.objective, config.model_type
 
     def forward(self, x, t=None,m=None):
         batch_size, seq_len, _ = x.shape
         x = self.embedding(x).view(batch_size, seq_len, -1)
-        if self.diffusion : # ARDM-like training
+        if self.objective == "diffusion": # prefer bidirectionnal
             device = x.device
-            if t is None: t = torch.randint(0, self.num_diffusion_steps, (batch_size,), device=device)
+            if t is None: t = torch.randint(0, self.num_diffusion_steps+1, (batch_size,), device=device)
             if m is None: m = torch.randint(0, 2, x.shape[:2], device=device).unsqueeze(-1)
             alpha_t, noise = torch.cos(t / self.num_diffusion_steps * np.pi / 2)[:, None, None], torch.randn_like(x)
             x = torch.where(m == 1, x, (1 - alpha_t) * noise +  alpha_t * x)
         x, _ = self.sequence_model(x)
         x = self.fc(x) # Shape: (batch_size, seq_len, vocab_size*pxby) or (batch_size, seq_len, vocab_size)
-        return x.view(batch_size, seq_len, self.pxby_dim, -1) if self.auto_regressive else x
+        return x if self.objective=="predict" else x.view(batch_size, seq_len, self.pxby_dim, -1)
 
     def _process_probs(self, outputs, temperature, current_input, i=None):
-        if self.auto_regressive: # Reshape outputs to [1, vocab_size], apply softmax and sample from prob distribution
-            probs = torch.softmax(outputs[:, -1].view(-1, self.config.vocab_size) / temperature, dim=-1)
-            next_token = torch.multinomial(probs, num_samples=1).view(1, 1, -1)
-            return torch.cat([current_input, next_token], dim=1) # true generator
-        else:
+        if self.objective == "predict":
             probs = torch.softmax(outputs[:, -1] / temperature, dim=-1)
             next_token = torch.multinomial(probs, num_samples=1)
             current_input[:, -(i+1)] = next_token.squeeze(-1) # Replace the (i+1)th token from the end (False generator)
             return current_input
+        else : # Reshape outputs to [1, vocab_size], apply softmax and sample from prob distribution
+            probs = torch.softmax(outputs[:, -1].view(-1, self.config.vocab_size) / temperature, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1).view(1, 1, -1)
+            return torch.cat([current_input, next_token], dim=1) # true generator
 
     def generate(self, input_ids, num_generate, temperature=1.0, position=None):
         self.eval()
@@ -124,7 +123,7 @@ class aPxBySequenceModel(PreTrainedModel):
             current_input = input_ids.clone()
             batch_size, seq_len = current_input.shape[:2]
             for i in range(num_generate): # Generate next token or special position (for example in setpoint-control)
-                if self.diffusion: # not working for now
+                if self.objective == "diffusion": # not working for now
                     pos = position if position is not None else torch.randint(0, seq_len, (batch_size,))
                     for t in reversed(range(self.num_diffusion_steps)): 
                         t_tensor = torch.full((current_input.shape[0],), t)
@@ -161,9 +160,12 @@ class aPxBySequenceModel(PreTrainedModel):
             for i, batch in enumerate(tqdm(dataloader, desc="Training" if is_training else "Evaluating")):
                 input_ids, labels = batch['input_ids'].to(device), batch['labels'].to(device)
                 with torch.amp.autocast(device_type='cuda', enabled=scaler is not None):
-                    if self.auto_regressive: # Reshape and shift for autoregressive mode
+                    if self.objective=="autoregressive": # Reshape and shift for autoregressive mode
                         outputs = self(input_ids[:, :-1]).contiguous().view(-1, self.config.vocab_size)
                         target = input_ids[:, 1:].contiguous().view(-1)
+                    elif self.objective=="diffusion":
+                        outputs = self(input_ids).contiguous().view(-1, self.config.vocab_size)
+                        target = input_ids.contiguous().view(-1) 
                     else: # Flatten outputs and use labels as target for non-autoregressive mode
                         outputs = self(input_ids).view(-1, self.config.vocab_size)
                         target = labels.view(-1)
@@ -182,7 +184,7 @@ class aPxBySequenceModel(PreTrainedModel):
         return total_loss / len(dataloader), total_correct / total_samples
 
     def save_model(self, is_best=False):
-        save_dir = os.path.join(os.getcwd(), f"{self.model_type}_{'autoregressive' if self.auto_regressive else 'predictive'}_{('best' if is_best else 'last')}")
+        save_dir = os.path.join(os.getcwd(), f"{self.model_type}_{self.objective}_{('best' if is_best else 'last')}")
         os.makedirs(save_dir, exist_ok=True)
         self.save_pretrained(save_dir)
         print(f"Model saved to {save_dir}")
@@ -191,9 +193,9 @@ if __name__ == '__main__':
     #from tokenizer import ActionPixelBytesTokenizer
     #from datasets import load_dataset
     ## some test in test.py file (here very basic)
-    config = ModelConfig(diffusion=True, bidirectionnal=True)
-    model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-Pokemon", subfolder="lstm_autoregressive_last")
-    #model = aPxBySequenceModel(config)
+    config = ModelConfig(objective=1, bidirectionnal=True)
+    #model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-Pokemon", subfolder="lstm_autoregressive_last")
+    model = aPxBySequenceModel(config)
     input_tensor = torch.randint(0, 151, (1, 1024, 6))
     output_tensor = model.generate(input_tensor, 3) # inconsistent with noise (diffusion uncomment)
-    print(output_tensor)
+    print(output_tensor, output_tensor.shape)
