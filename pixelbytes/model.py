@@ -115,8 +115,8 @@ class aPxBySequenceModel(PreTrainedModel):
             return current_input
         elif self.objective == "diffusion":
             probs = torch.softmax(outputs[:, pos].view(-1, self.config.vocab_size) / temperature, dim=-1)
-            pos_token = torch.multinomial(probs, num_samples=1).view(1, 1, -1)
-            current_input[:, pos] = pos_token
+            pos_tokens = torch.multinomial(probs, num_samples=1).view(1, len(pos), -1)
+            current_input.scatter_(1, pos.expand(1, -1, self.pxby_dim), pos_tokens)
             return current_input    
         else : # Reshape outputs to [1, vocab_size], apply softmax and sample from prob distribution
             probs = torch.softmax(outputs[:, -1].view(-1, self.config.vocab_size) / temperature, dim=-1)
@@ -126,13 +126,13 @@ class aPxBySequenceModel(PreTrainedModel):
     def generate(self, input_ids, idn_generator=None, temperature=1.0):
         self.eval()
         with torch.no_grad():
-            current_input = input_ids.clone()
+            current_input, device = input_ids.clone(), input_ids.device
             batch_size, seq_len = current_input.shape[:2]
-            if self.objective == "diffusion" : # Generate specific position (setpoint in control problem)
-                position = idn_generator if idn_generator is not None else torch.randint(0, seq_len, (batch_size,), device=input_ids.device).unsqueeze(-1)
+            if self.objective == "diffusion" : # Generate n specific position (setpoint in control problem)
+                position = torch.as_tensor(idn_generator, dtype=torch.long, device=device)[:,None] if idn_generator is not None else torch.randint(0, seq_len, (10,), device=device).unsqueeze(-1)
                 mask = torch.ones((batch_size, seq_len)).unsqueeze(-1); mask[:,position] = 0
                 for t in reversed(range(self.num_diffusion_steps)):
-                    t_tensor = torch.full((batch_size,), t, device=input_ids.device)
+                    t_tensor = torch.full((batch_size,), t, device=device)
                     outputs = self(current_input, t_tensor, mask)
                     current_input = self._process_probs(outputs, temperature, current_input, position)
             else :
@@ -207,4 +207,4 @@ if __name__ == '__main__':
     #model = aPxBySequenceModel(config)
     input_tensor = torch.randint(0, 151, (1, 1024, 6))
     output_tensor = model.generate(input_tensor) # inconsistent with noise (diffusion uncomment)
-    print(input_tensor, output_tensor, output_tensor.shape)
+    print(input_tensor, output_tensor, output_tensor.shape, torch.where(input_tensor - output_tensor !=0))
