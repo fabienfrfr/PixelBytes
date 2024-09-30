@@ -207,4 +207,4 @@ if __name__ == '__main__':
     #model = aPxBySequenceModel(config)
     input_tensor = torch.randint(0, 151, (1, 1024, 6))
     output_tensor = model.generate(input_tensor) # inconsistent with noise (diffusion uncomment)
-    print(input_tensor, output_tensor, output_tensor.shape, torch.where(input_tensor - output_tensor !=0))
+    print(input_tensor, output_tensor, output_tensor.shape, torch.where(input_tensor - output_tensor !=0)) # ok

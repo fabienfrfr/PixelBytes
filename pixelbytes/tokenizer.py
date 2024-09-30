@@ -9,8 +9,6 @@ from transformers import PreTrainedTokenizer
 from skimage.color import rgb2lab
 from typing import List, Dict, Union, Tuple
 import numpy as np
-from scipy.spatial import cKDTree
-from scipy import stats
 
 ## Bytes (ASCII - UTF8) 
 #DEFAULT_BYTES = sorted(set(bytes(c, 'ascii') for c in re.findall(r'[\x00-\x20\x22-\x2f\x30-\x39a-z]', ''.join(map(chr, range(256))))))
@@ -126,15 +124,14 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         return torch.cat((frames, added_column), dim=2)
 
     def process_action_state(self, audio):
-        audio = torch.tensor(audio)
-        if audio.dim() < 2:
-            audio = audio.unsqueeze(0)
-        normalized_state = torch.clamp(torch.tensor(stats.zscore(audio.numpy(), axis=1)), -1, 1).flatten()
-        action_state_tensor = torch.tensor(DEFAULT_ACTION_STATE).reshape(-1, 1)
-        indices = torch.tensor(cKDTree(action_state_tensor.numpy()).query(normalized_state.reshape(-1, 1).numpy())[1]).reshape(audio.shape)
+        audio = torch.tensor(audio, dtype=torch.float32)
+        if audio.dim() < 2: audio = audio.unsqueeze(0)
+        normalized_state = ((audio - audio.min()) / (audio.max() - audio.min()) * 2 - 1).to(torch.float32)
+        action_state_tensor = torch.tensor(DEFAULT_ACTION_STATE, dtype=torch.float32).reshape(-1, 1)
+        indices = torch.argmin(torch.cdist(normalized_state.view(-1, 1), action_state_tensor), dim=1).view(normalized_state.shape)
         indices = (indices + self.bytes_size + self.palet_size)[:, ::self.slicing['audio']]
-        separators = torch.tensor([[1], [2]])[:indices.shape[0]]
-        return torch.cat([indices, separators], dim=1).T.unsqueeze(1)
+        separators = torch.tensor([[1], [2]], dtype=torch.long)[:indices.shape[0]]
+        return torch.cat([indices.long(), separators], dim=1).T.unsqueeze(1)
 
     def create_sequence_data(self, context_array):
         n_frames, height, width = context_array.shape
