@@ -124,7 +124,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         return torch.cat((frames, added_column), dim=2)
 
     def process_action_state(self, audio):
-        audio = torch.tensor(audio, dtype=torch.float32)
+        audio = torch.tensor(audio, dtype=torch.float32).contiguous()
         if audio.dim() < 2: audio = audio.unsqueeze(0)
         normalized_state = ((audio - audio.min()) / (audio.max() - audio.min()) * 2 - 1).to(torch.float32)
         action_state_tensor = torch.tensor(DEFAULT_ACTION_STATE, dtype=torch.float32).reshape(-1, 1)
