@@ -14,29 +14,31 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ## Bytes (ASCII - UTF8) 
-#DEFAULT_BYTES = sorted(set(bytes(c, 'ascii') for c in re.findall(r'[\x00-\x20\x22-\x2f\x30-\x39a-z]', ''.join(map(chr, range(256))))))
-DEFAULT_BYTES = [b'\x00', b'\t', b'\n', b' ', b'"', b"'", b'(', b')', b'*', b',', b'-', b'+', 
-                b'.', b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'\xc2', 
-                b'\xa0', b':', b'[', b']', b';', b'/', b'%', b'!', b'a', b'b', b'c', b'd', b'e', 
-                b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', 
-                b's', b't', b'u', b'v', b'w', b'x', b'y', b'z']
+DEFAULT_BYTES = ast.literal_eval(os.getenv('DEFAULT_BYTES'))
+def generate_bytes():
+    return [bytes([i]) for i in range(256)]
 ## Pixel (RGB NES Palette) 
-#DEFAULT_PALETTE = [tuple(int(255*c) for c in colorsys.hsv_to_rgb(h/10,s,v)) for h in range(10) for s in [1,.7] for v in [1,.7,.4]][:50]+[(0,0,0),(252,252,252),(248,248,248),(188,188,188),(120,120,120)]
 DEFAULT_PALETTE = [tuple(p) for p in ast.literal_eval(os.getenv('DEFAULT_PALETTE'))]
+def generate_palette(num_colors=55):
+    return [tuple(int(255*x) for x in colorsys.hsv_to_rgb(i/num_colors, 0.8, 0.9)) for i in range(num_colors)]
 ## Action-space (Control & Audio)
-DEFAULT_ACTION_STATE = np.linspace(-1, 1, 38).tolist()
+def generate_action_space(num_steps=38):
+    return np.linspace(-1, 1, num_steps).tolist()
+DEFAULT_ACTION_STATE = generate_action_space()
 
 ##### Tokenizer
 class ActionPixelBytesTokenizer(PreTrainedTokenizer):
-    def __init__(self, data_slicing={"image":1, "audio":1}, **kwargs):
+    def __init__(self, BYTES=DEFAULT_BYTES, PALETTE=DEFAULT_PALETTE, ACTION_STATE=DEFAULT_ACTION_STATE,
+                 data_slicing={"image":1, "audio":1}, **kwargs):
         ## Bytes (ASCII - UTF8) + Pixel (RGB NES Palette) + Action-space (Control & Audio)
-        ActionPixelbytes = DEFAULT_BYTES + DEFAULT_PALETTE + DEFAULT_ACTION_STATE
+        self.BYTES, self.PALETTE, self.ACTION_STATE = BYTES, PALETTE, ACTION_STATE
+        ActionPixelbytes = BYTES + PALETTE + ACTION_STATE
         self.vocab = {ActionPixelbytes[i]: i for i in range(len(ActionPixelbytes))}
         super().__init__(**kwargs)
         self.slicing = data_slicing
-        self.bytes_size = len(DEFAULT_BYTES)
-        self.palet_size = len(DEFAULT_PALETTE)
-        self.LabPalette = torch.tensor(rgb2lab(np.array(DEFAULT_PALETTE)[None, :, :] / 255.0)[0])
+        self.bytes_size = len(BYTES)
+        self.palet_size = len(PALETTE)
+        self.LabPalette = torch.tensor(rgb2lab(np.array(PALETTE)[None, :, :] / 255.0)[0])
         self.ids_to_tokens = {v: k for k, v in self.vocab.items()}
 
     @property
@@ -70,7 +72,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
                     if current_frame:
                         image_frames.append(current_frame)
                         current_line, current_frame = [], []
-                elif token in DEFAULT_BYTES:
+                elif token in self.BYTES:
                     text_tokens.append(token)
             elif isinstance(token, tuple):
                 current_line.append(token)
@@ -117,7 +119,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         audio = torch.tensor(audio, dtype=torch.float32).contiguous()
         if audio.dim() < 2: audio = audio.unsqueeze(0)
         normalized_state = ((audio - audio.min()) / (audio.max() - audio.min()) * 2 - 1).to(torch.float32)
-        action_state_tensor = torch.tensor(DEFAULT_ACTION_STATE, dtype=torch.float32).reshape(-1, 1)
+        action_state_tensor = torch.tensor(self.ACTION_STATE, dtype=torch.float32).reshape(-1, 1)
         indices = torch.argmin(torch.cdist(normalized_state.view(-1, 1), action_state_tensor), dim=1).view(normalized_state.shape)
         indices = (indices + self.bytes_size + self.palet_size)[:, ::self.slicing['audio']]
         separators = torch.tensor([[1], [2]], dtype=torch.long)[:indices.shape[0]]
