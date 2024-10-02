@@ -6,7 +6,7 @@
 import torch, os, warnings
 import torch.nn as nn
 import warnings
-import pandas as pd
+import pandas as pd, numpy as np
 import soundfile as sf
 from datasets import Dataset, Features, Value, Audio
 from huggingface_hub import login
@@ -200,14 +200,47 @@ class ControlDataset:
             "text": Value("string")})
         return dataset.cast(features)
 
+def generate_gymsetpoint_dataset(tfs=[[([-1],[1,1])], [([1],[1,1])]], N=1000):
+    # tf a/(x+1) & datascale
+    scaler = np.unique(np.logspace(0, np.log10(100), 50).astype(int))
+    config = {"env_mode":0, "reset_X_start":False,"tf":None, "setpoint": 0.5,"t":None,"N":N+2}
+    # lanch all simulation
+    dataset_generator, results = ControlDataset(), []
+    for tf in tfs :
+        print(tf)
+        for t in tqdm(scaler) : # simulation time
+            for s in scaler : # step control time
+                config["tf"], config["t"]  = tf, t
+                env =  LtiEnv(custom_config=config)
+                observation, info = env.reset()
+                x,y = [observation[0]], [observation[2]]
+                for i in range(N): 
+                    if i%s==0 :
+                        action = 0.66*env.sign*np.sign(np.diff(observation[-2:])) + 0.33*env.action_space.sample()# Bang-bang control
+                    observation, reward, terminated, truncated, info = env.step(action)
+                    x.append(observation[0]), y.append(observation[2])
+                A,B,C,D = [torch.tensor(env.ss[ss]) for ss in ['A','B','C','D']]
+                result = (A, B, C, D, "bang-bang (t,s)", 0, torch.tensor(x), torch.tensor(y), torch.tensor([t,s]))
+                results.append(result)
+    # construct and return dataset
+    dataset_generator.generate_dataset(results)
+    return dataset_generator.create_hf_dataset()
+
 def push_control_to_hub(dataset, repo_name='PixelBytes-OptimalControl'):
     token = input("Please enter your Hugging Face token: ")
     login(token=token)
     # Push to Hub
     dataset.push_to_hub(repo_name)
 
-
 if __name__ == "__main__":
+    print("pip install -q -U git+https://github.com/fabienfrfr/Gym-Setpoint@main")
+    from gym_setpoint.envs.lti_env import LtiEnv
+    from tqdm import tqdm
+    import pylab as plt
+    dataset = generate_gymsetpoint_dataset()
+    #from datasets import concatenate_datasets
+    #concatenated_dataset = concatenate_datasets([dataset, dataset_])
+    """
     ## TEST
     os.environ['DEBUG'] = 'True'
     A = torch.tensor([[0, 1], [-1, -1]], dtype=torch.float32)
@@ -235,7 +268,7 @@ if __name__ == "__main__":
     dataset_generator.generate_dataset(results)
     hf_dataset = dataset_generator.create_hf_dataset()
     print("Hugging Face dataset created successfully.")
-
+    """
     ## DATASET
     '''
     coefs1 = generate_coefficients(-1, 1.1, 5./10.)
