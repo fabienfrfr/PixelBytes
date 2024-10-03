@@ -15,10 +15,10 @@ load_dotenv()
 
 ## Bytes (ASCII - UTF8) 
 DEFAULT_BYTES = [b'\x00', b'\t', b'\n', b' ', b'"', b"'", b'(', b')', b'*', b',', b'-', b'+', b'.', b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'\xc2', b'\xa0', b':', b'[', b']', b';', b'/', b'%', b'!', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z']
-def generate_bytes():
-    return [bytes([i]) for i in range(256)]
+def generate_bytes(num_ascii=256):
+    return [bytes([i]) for i in range(num_ascii)]
 ## Pixel (RGB NES Palette) 
-DEFAULT_PALETTE = [tuple(p) for p in ast.literal_eval(os.getenv('DEFAULT_PALETTE'))]
+DEFAULT_PALETTE = [tuple(p) for p in [[0, 0, 0], [252, 252, 252], [248, 248, 248], [188, 188, 188], [124, 124, 124], [164, 228, 252], [60, 188, 252], [0, 120, 248], [0, 0, 252], [184, 184, 248], [104, 136, 252], [0, 88, 248], [0, 0, 188], [216, 184, 248], [152, 120, 248], [104, 68, 252], [68, 40, 188], [248, 184, 248], [248, 120, 248], [216, 0, 204], [148, 0, 132], [248, 164, 192], [248, 88, 152], [228, 0, 88], [168, 0, 32], [240, 208, 176], [248, 120, 88], [248, 56, 0], [168, 16, 0], [252, 224, 168], [252, 160, 68], [228, 92, 16], [136, 20, 0], [248, 216, 120], [248, 184, 0], [172, 124, 0], [80, 48, 0], [216, 248, 120], [184, 248, 24], [0, 184, 0], [0, 120, 0], [184, 248, 184], [88, 216, 84], [0, 168, 0], [0, 104, 0], [184, 248, 216], [88, 248, 152], [0, 168, 68], [0, 88, 0], [0, 252, 252], [0, 232, 216], [0, 136, 136], [0, 64, 88], [248, 216, 248], [120, 120, 120]]]
 def generate_palette(num_colors=55):
     return [tuple(int(255*x) for x in colorsys.hsv_to_rgb(i/num_colors, 0.8, 0.9)) for i in range(num_colors)]
 ## Action-space (Control & Audio)
