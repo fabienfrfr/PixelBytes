@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ## Bytes (ASCII - UTF8) 
-DEFAULT_BYTES = ast.literal_eval(os.getenv('DEFAULT_BYTES'))
+DEFAULT_BYTES = [b'\x00', b'\t', b'\n', b' ', b'"', b"'", b'(', b')', b'*', b',', b'-', b'+', b'.', b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'\xc2', b'\xa0', b':', b'[', b']', b';', b'/', b'%', b'!', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z']
 def generate_bytes():
     return [bytes([i]) for i in range(256)]
 ## Pixel (RGB NES Palette) 
