@@ -143,6 +143,7 @@ class aPxBySequenceModel(PreTrainedModel):
             return current_input
 
     def train_model(self, train_dataloader, val_dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4, eval_every=5):
+        if self.objective != "diffusion" and self.bidirection : print("[WARNING] predictive model know the futur for these config..")
         best_loss = float('inf')
         val_loss, val_accuracy = self._process_epoch(val_dataloader, None, criterion, device, None, accumulation_steps)
         metrics = [{'epoch': 0,'train_loss': val_loss,'train_accuracy': val_accuracy, 'val_loss': val_loss, 'val_accuracy': val_accuracy}]
