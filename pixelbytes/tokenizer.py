@@ -3,7 +3,7 @@
 """
 @author: fabienfrfr
 """
-import torch, unicodedata
+import torch, unicodedata, colorsys
 from torch import nn
 from transformers import PreTrainedTokenizer
 from skimage.color import rgb2lab
