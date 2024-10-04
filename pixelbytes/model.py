@@ -100,7 +100,7 @@ class aPxBySequenceModel(PreTrainedModel):
         if self.objective == "diffusion": # prefer bidirectionnal
             device = x.device
             if t is None: t = torch.randint(0, self.num_diffusion_steps+1, (batch_size,), device=device)
-            if m is None: m = torch.bernoulli(torch.full(x.shape[:2], 0.15, device=device)).long().unsqueeze(-1)
+            if m is None: m = torch.bernoulli(torch.full((batch_size, seq_len), 0.15, device=device)).long().unsqueeze(-1)
             alpha_t, noise = torch.cos((t / self.num_diffusion_steps) * (np.pi / 2))[:, None, None], torch.randn_like(x)
             x = torch.where(m == 1, x, (1 - alpha_t) * noise +  alpha_t * x)
         x, _ = self.sequence_model(x)
@@ -142,9 +142,13 @@ class aPxBySequenceModel(PreTrainedModel):
                     current_input = self._process_probs(outputs, temperature, current_input, i)
             return current_input
 
-    def train_model(self, train_dataloader, val_dataloader, optimizer, criterion, device, scaler, epochs, accumulation_steps=4, eval_every=5):
+    def train_model(self, train_dataloader, val_dataloader, epochs, optimizer=None, criterion=None, accumulation_steps=4, eval_every=5):
         if self.objective != "diffusion" and self.bidirection : print("[WARNING] predictive model know the futur for these config..")
         best_loss = float('inf')
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE) if optimizer is None else optimizer
+        criterion = nn.CrossEntropyLoss(ignore_index=-100) if criterion is None else criterion
+        scaler = GradScaler() if torch.cuda.is_available() else None
         val_loss, val_accuracy = self._process_epoch(val_dataloader, None, criterion, device, None, accumulation_steps)
         metrics = [{'epoch': 0,'train_loss': val_loss,'train_accuracy': val_accuracy, 'val_loss': val_loss, 'val_accuracy': val_accuracy}]
         print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
@@ -207,5 +211,6 @@ if __name__ == '__main__':
     model = aPxBySequenceModel.from_pretrained("ffurfaro/aPixelBytes-OptimalControl", subfolder="bilstm_diffusion_last")#, ignore_mismatched_sizes=True)
     #model = aPxBySequenceModel(config)
     input_tensor = torch.randint(0, 151, (1, 1024, 6))
+    direct_output = model(input_tensor)
     output_tensor = model.generate(input_tensor) # inconsistent with noise (diffusion uncomment)
     print(input_tensor, output_tensor, output_tensor.shape, torch.where(input_tensor - output_tensor !=0)) # ok
