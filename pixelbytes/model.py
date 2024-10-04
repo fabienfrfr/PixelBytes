@@ -92,7 +92,7 @@ class aPxBySequenceModel(PreTrainedModel):
         else: self.sequence_model = nn.LSTM(config.embed_size, config.hidden_size, config.num_layers, bidirectional=config.bidirection, batch_first=True)
         self.fc = nn.Linear(config.hidden_size * (1 + config.bidirection), config.vocab_size * (1 if config.objective=="predict" else config.pxby_dim))
         self.pxby_dim, self.num_diffusion_steps = config.pxby_dim, config.num_diffusion_steps
-        self.objective, self.model_type = config.objective, config.model_type
+        self.objective, self.model_type, self.pxby_emb = config.objective, config.model_type, config.pxby_emb
 
     def forward(self, x, t=None,m=None):
         batch_size, seq_len, _ = x.shape
@@ -130,7 +130,8 @@ class aPxBySequenceModel(PreTrainedModel):
             batch_size, seq_len = current_input.shape[:2]
             if self.objective == "diffusion" : # Generate n specific position (setpoint in control problem)
                 position = torch.as_tensor(idn_generator, dtype=torch.long, device=device)[:,None] if idn_generator is not None else torch.randint(0, seq_len, (10,), device=device).unsqueeze(-1)
-                mask = torch.ones((batch_size, seq_len)).unsqueeze(-1); mask[:,position] = 0
+                mask = torch.ones((batch_size, seq_len, self.pxby_dim, self.pxby_emb)); mask[:,position] = 0 # complete mask
+                mask[:,torch.clamp(position + 1, max=seq_len - 1), :-1] = 0; mask = mask.view(batch_size, seq_len, -1)
                 for t in reversed(range(self.num_diffusion_steps)):
                     t_tensor = torch.full((batch_size,), t, device=device)
                     outputs = self(current_input, t_tensor, mask)
