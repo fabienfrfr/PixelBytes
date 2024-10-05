@@ -76,7 +76,7 @@ class ModelConfig(PretrainedConfig):
         self.bidirection = bidirection
         self.embed_size = int(self.pxby_emb * self.pxby_dim) 
         self.objective = ["predict","autoregressive","diffusion"][objective] if isinstance(objective, int) else objective # crafts
-        self.num_diffusion_steps = num_diffusion_steps
+        self.num_diffusion_steps = num_diffusion_steps # + 1 in fact
         self.model_type = model_type # Don't forget mask if you want to use transformer
         self.custom_model = custom_model
         self.hidden_size = hidden_size // (1 + bidirection) if isinstance(objective, int) else hidden_size # crafts
