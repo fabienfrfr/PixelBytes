@@ -237,7 +237,7 @@ if __name__ == "__main__":
     from gym_setpoint.envs.lti_env import LtiEnv
     from tqdm import tqdm
     import pylab as plt
-    dataset = generate_gymsetpoint_dataset()
+    #dataset = generate_gymsetpoint_dataset()
     #from datasets import concatenate_datasets
     #concatenated_dataset = concatenate_datasets([dataset, dataset_])
     """

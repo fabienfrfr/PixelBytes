@@ -131,7 +131,8 @@ class aPxBySequenceModel(PreTrainedModel):
             if self.objective == "diffusion" : # Generate n specific position (setpoint in control problem)
                 position = torch.as_tensor(idn_generator, dtype=torch.long, device=device)[:,None] if idn_generator is not None else torch.randint(0, seq_len, (10,), device=device).unsqueeze(-1)
                 mask = torch.ones((batch_size, seq_len, self.pxby_dim, self.pxby_emb)); mask[:,position] = 0 # complete mask
-                mask[:,torch.clamp(position + 1, max=seq_len - 1), :-1] = 0; mask = mask.view(batch_size, seq_len, -1)
+                mask[:,torch.clamp(position + 1, max=seq_len-1), :-1] = 0; mask = mask.view(batch_size, seq_len, -1)
+                position = torch.unique(torch.concat([position,torch.clamp(position + 1, max=seq_len-1)])).unsqueeze(-1)
                 for t in reversed(range(self.num_diffusion_steps+1)):
                     t_tensor = torch.full((batch_size,), t, device=device)
                     outputs = self(current_input, t_tensor, mask)
@@ -213,5 +214,5 @@ if __name__ == '__main__':
     #model = aPxBySequenceModel(config)
     input_tensor = torch.randint(0, 151, (1, 1024, 6))
     direct_output = model(input_tensor)
-    output_tensor = model.generate(input_tensor) # inconsistent with noise (diffusion uncomment)
+    output_tensor = model.generate(input_tensor, idn_generator=[1021,1022]) # inconsistent with noise (diffusion uncomment)
     print(input_tensor, output_tensor, output_tensor.shape, torch.where(input_tensor - output_tensor !=0)) # ok
