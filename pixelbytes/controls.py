@@ -232,6 +232,29 @@ def push_control_to_hub(dataset, repo_name='PixelBytes-OptimalControl'):
     # Push to Hub
     dataset.push_to_hub(repo_name)
 
+def run_simulations(env, model, tokenizer, n_simulations=10, n_steps=251, scaler=2, repeat=3, mean=False):
+    all_obs = []
+    for _ in tqdm(range(n_simulations), desc="Running simulations"):
+        observation, _ = env.reset()
+        obs, action, sim_obs = [observation], 0, []
+        for i in range(n_steps):
+            if i < model.config.hidden_size and i % scaler == 0:
+                action = (action + 0.8*env.sign*np.sign(np.diff(observation[-2:])) + 0.2*env.action_space.sample())/2
+            elif i >= model.config.hidden_size:
+                wanted_obs = obs + repeat*[np.array([0,0,observation[-1],0])]
+                tokenstamp = tokenizer(audio={'array': np.stack(wanted_obs).T[[0,2]]})
+                in_model = tokenstamp['input_ids'][None, :-1]
+                targets = list(range(in_model.shape[1]-2*repeat, in_model.shape[1], 2))
+                action_tokens = model.generate(in_model, idn_generator=targets, temperature=0.1).detach().int()[0,targets,-1]
+                action = [np.mean(tokenizer.convert_ids_to_tokens(action_tokens))] if mean else [tokenizer._convert_id_to_token(int(action_tokens[0]))]
+            observation, _, _, _, _ = env.step(action)
+            sim_obs.append(observation[[0,2]])
+            obs.append(observation)
+        all_obs.append(sim_obs)
+    df = pd.DataFrame(all_obs).applymap(list)
+    df.to_csv('simulation_results.csv', index=False)
+    return df, model.config.hidden_size
+
 if __name__ == "__main__":
     print("pip install -q -U git+https://github.com/fabienfrfr/Gym-Setpoint@main")
     from gym_setpoint.envs.lti_env import LtiEnv
