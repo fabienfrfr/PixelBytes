@@ -132,7 +132,7 @@ class aPxBySequenceModel(PreTrainedModel):
                 position = torch.as_tensor(idn_generator, dtype=torch.long, device=device)[:,None] if idn_generator is not None else torch.randint(0, seq_len, (10,), device=device).unsqueeze(-1)
                 mask = torch.ones((batch_size, seq_len, self.pxby_dim, self.pxby_emb)); mask[:,position] = 0 # complete mask
                 mask[:,torch.clamp(position + 1, max=seq_len - 1), :-1] = 0; mask = mask.view(batch_size, seq_len, -1)
-                for t in reversed(range(self.num_diffusion_steps)):
+                for t in reversed(range(self.num_diffusion_steps+1)):
                     t_tensor = torch.full((batch_size,), t, device=device)
                     outputs = self(current_input, t_tensor, mask)
                     current_input = self._process_probs(outputs, temperature, current_input, position)
