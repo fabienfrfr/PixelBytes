@@ -92,7 +92,7 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         if image is not None:
             inputs.append(self.process_image(image))
         if audio is not None:
-            inputs.append(self.process_action_state(audio['array']), stream)
+            inputs.append(self.process_action_state(audio['array'], stream))
         if not inputs:
             raise ValueError("At least one input (text, image, or audio) must be provided")
         context, targets = zip(*[self.create_sequence_data(inp) for inp in inputs])
