@@ -85,14 +85,14 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
                 'image': image_frames,
                 'audio': audio_tokens}
 
-    def __call__(self, text=None, image=None, audio=None, stream=False, **kwargs):
+    def __call__(self, text=None, image=None, audio=None, **kwargs):
         inputs = []
         if text is not None:
             inputs.append(self.process_text(text))
         if image is not None:
             inputs.append(self.process_image(image))
         if audio is not None:
-            inputs.append(self.process_action_state(audio['array'], stream))
+            inputs.append(self.process_action_state(audio['array']))
         if not inputs:
             raise ValueError("At least one input (text, image, or audio) must be provided")
         context, targets = zip(*[self.create_sequence_data(inp) for inp in inputs])
@@ -115,10 +115,10 @@ class ActionPixelBytesTokenizer(PreTrainedTokenizer):
         added_column[:, -1, :] = 2
         return torch.cat((frames, added_column), dim=2)
 
-    def process_action_state(self, audio, stream=False):
+    def process_action_state(self, audio):
         audio = torch.tensor(audio, dtype=torch.float32).contiguous()
         if audio.dim() < 2: audio = audio.unsqueeze(0)
-        normalized_state = audio if stream else ((audio - audio.min()) / (audio.max() - audio.min()) * 2 - 1).to(torch.float32)
+        normalized_state = ((audio - audio.min()) / (audio.max() - audio.min()) * 2 - 1).to(torch.float32)
         action_state_tensor = torch.tensor(self.ACTION_STATE, dtype=torch.float32).reshape(-1, 1)
         indices = torch.argmin(torch.cdist(normalized_state.view(-1, 1), action_state_tensor), dim=1).view(normalized_state.shape)
         indices = (indices + self.bytes_size + self.palet_size)[:, ::self.slicing['audio']]

@@ -100,7 +100,7 @@ class aPxBySequenceModel(PreTrainedModel):
         if self.objective == "diffusion": # prefer bidirectionnal
             device = x.device
             if t is None: t = torch.randint(0, self.num_diffusion_steps+1, (batch_size,), device=device)
-            if m is None: m = torch.bernoulli(torch.full((batch_size, seq_len), 0.15, device=device)).long().unsqueeze(-1)
+            if m is None: m = torch.bernoulli(torch.full((batch_size, seq_len), 0.15, device=device)).long().unsqueeze(-1) # maybe "position + 1" needed ?
             alpha_t, noise = torch.cos((t / self.num_diffusion_steps) * (np.pi / 2))[:, None, None], torch.randn_like(x)
             x = torch.where(m == 1, x, (1 - alpha_t) * noise +  alpha_t * x)
         x, _ = self.sequence_model(x)
