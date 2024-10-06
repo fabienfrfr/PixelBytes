@@ -101,7 +101,7 @@ class aPxBySequenceModel(PreTrainedModel):
             if t is None: t = torch.randint(self.num_diffusion_steps-1, self.num_diffusion_steps+1, (batch_size,), device=x.device)
             if m is None: 
                 p = torch.randint(0, seq_len, (int(seq_len/2),), device=x.device).unsqueeze(-1) # position (with repeat)
-                m = torch.ones((batch_size, seq_len, self.pxby_dim, self.pxby_emb)); m[:,p] = 0 # complete mask
+                m = torch.ones((batch_size, seq_len, self.pxby_dim, self.pxby_emb), device=x.device); m[:,p] = 0 # complete mask
                 m[:,torch.clamp(p + 1, max=seq_len-1), :-1] = 0; m = m.view(batch_size, seq_len, -1)
             alpha_t, noise = (1 - t / self.num_diffusion_steps)[:, None, None], torch.randn_like(x)
             x = torch.where(m == 1, x, (1 - alpha_t) * noise +  alpha_t * x)
