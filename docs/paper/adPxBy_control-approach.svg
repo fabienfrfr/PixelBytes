@@ -24,9 +24,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="pt"
      showgrid="false"
-     inkscape:zoom="0.37081497"
-     inkscape:cx="918.24772"
-     inkscape:cy="14.832195"
+     inkscape:zoom="0.66408633"
+     inkscape:cx="990.08211"
+     inkscape:cy="330.52931"
      inkscape:window-width="1850"
      inkscape:window-height="1016"
      inkscape:window-x="0"
@@ -234,7 +234,8 @@
   <g
      id="g1634"
      inkscape:label="simulation_plot"
-     transform="matrix(0.99999998,0,0,-0.99999998,0,426.34437)">
+     transform="matrix(0.99999998,0,0,-0.99999998,0,426.34437)"
+     style="display:inline">
     <path
        d="M 0,0 H 1139.4221 V 426.34438 H 0 Z"
        style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
@@ -1330,7 +1331,7 @@
      ry="1.4999851" />
   <g
      id="g12675-8-8-33"
-     transform="matrix(2.8346457,0,0,2.8346457,258.51152,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,258.51152,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1395,7 +1396,7 @@
   </g>
   <g
      id="g12675-8-6-8-6"
-     transform="matrix(2.8346457,0,0,2.8346457,291.96792,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,291.96792,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1460,7 +1461,7 @@
   </g>
   <g
      id="g12675-8-8-3-28"
-     transform="matrix(2.8346457,0,0,2.8346457,325.42432,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,325.42432,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1525,7 +1526,7 @@
   </g>
   <g
      id="g12675-8-6-8-5-1"
-     transform="matrix(2.8346457,0,0,2.8346457,425.79352,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,425.79352,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1590,7 +1591,7 @@
   </g>
   <g
      id="g12675-8-8-3-2-9"
-     transform="matrix(2.8346457,0,0,2.8346457,459.24992,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,459.24992,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1655,7 +1656,7 @@
   </g>
   <g
      id="g12675-8-6-8-1-5-8"
-     transform="matrix(2.8346457,0,0,2.8346457,492.70632,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,492.70632,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1720,7 +1721,7 @@
   </g>
   <g
      id="g12675-8-8-0-2"
-     transform="matrix(2.8346457,0,0,2.8346457,526.16283,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,526.16283,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1785,7 +1786,7 @@
   </g>
   <g
      id="g12675-8-6-8-7-8"
-     transform="matrix(2.8346457,0,0,2.8346457,559.61923,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,559.61923,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1850,7 +1851,7 @@
   </g>
   <g
      id="g12675-8-8-3-0-6"
-     transform="matrix(2.8346457,0,0,2.8346457,593.07563,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,593.07563,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1915,7 +1916,7 @@
   </g>
   <g
      id="g12675-8-6-8-1-4-0"
-     transform="matrix(2.8346457,0,0,2.8346457,626.53203,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,626.53203,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -1980,7 +1981,7 @@
   </g>
   <g
      id="g12675-8-8-2-6-7"
-     transform="matrix(2.8346457,0,0,2.8346457,659.98834,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,659.98834,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -2045,7 +2046,7 @@
   </g>
   <g
      id="g12675-8-6-8-5-7-2"
-     transform="matrix(2.8346457,0,0,2.8346457,693.44487,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,693.44487,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -2110,7 +2111,7 @@
   </g>
   <g
      id="g12675-8-8-3-2-1-8"
-     transform="matrix(2.8346457,0,0,2.8346457,726.90117,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,726.90117,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -2175,7 +2176,7 @@
   </g>
   <g
      id="g12675-8-6-8-1-5-7-8"
-     transform="matrix(2.8346457,0,0,2.8346457,760.35767,262.9762)"
+     transform="matrix(2.8346457,0,0,2.8346457,760.35767,270.4762)"
      style="stroke-linecap:butt;stroke-linejoin:round">
     <rect
        style="fill:#ececec;stroke:none;stroke-width:0.15;stop-color:#000000"
@@ -2497,7 +2498,7 @@
      sodipodi:nodetypes="cc" />
   <g
      id="g12675-8-8-33-5"
-     transform="matrix(2.8346457,0,0,2.8346457,258.51152,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,258.51152,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -2563,7 +2564,7 @@
   </g>
   <g
      id="g12675-8-6-8-6-3"
-     transform="matrix(2.8346457,0,0,2.8346457,291.96792,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,291.96792,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -2629,7 +2630,7 @@
   </g>
   <g
      id="g12675-8-8-3-28-3"
-     transform="matrix(2.8346457,0,0,2.8346457,325.42432,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,325.42432,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -2695,7 +2696,7 @@
   </g>
   <g
      id="g12675-8-6-8-5-1-4"
-     transform="matrix(2.8346457,0,0,2.8346457,425.79352,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,425.79352,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -2761,7 +2762,7 @@
   </g>
   <g
      id="g12675-8-8-3-2-9-4"
-     transform="matrix(2.8346457,0,0,2.8346457,459.24992,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,459.24992,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -2827,7 +2828,7 @@
   </g>
   <g
      id="g12675-8-6-8-1-5-8-2"
-     transform="matrix(2.8346457,0,0,2.8346457,492.70632,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,492.70632,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -2893,7 +2894,7 @@
   </g>
   <g
      id="g12675-8-8-0-2-5"
-     transform="matrix(2.8346457,0,0,2.8346457,526.16283,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,526.16283,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -2959,7 +2960,7 @@
   </g>
   <g
      id="g12675-8-6-8-7-8-8"
-     transform="matrix(2.8346457,0,0,2.8346457,559.61923,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,559.61923,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -3025,7 +3026,7 @@
   </g>
   <g
      id="g12675-8-8-3-0-6-0"
-     transform="matrix(2.8346457,0,0,2.8346457,593.07563,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,593.07563,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -3091,7 +3092,7 @@
   </g>
   <g
      id="g12675-8-6-8-1-4-0-4"
-     transform="matrix(2.8346457,0,0,2.8346457,626.53203,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,626.53203,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -3157,7 +3158,7 @@
   </g>
   <g
      id="g12675-8-8-2-6-7-0"
-     transform="matrix(2.8346457,0,0,2.8346457,659.98834,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,659.98834,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -3223,7 +3224,7 @@
   </g>
   <g
      id="g12675-8-6-8-5-7-2-7"
-     transform="matrix(2.8346457,0,0,2.8346457,693.44487,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,693.44487,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -3289,7 +3290,7 @@
   </g>
   <g
      id="g12675-8-8-3-2-1-8-3"
-     transform="matrix(2.8346457,0,0,2.8346457,726.90117,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,726.90117,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -3355,7 +3356,7 @@
   </g>
   <g
      id="g12675-8-6-8-1-5-7-8-1"
-     transform="matrix(2.8346457,0,0,2.8346457,760.35767,212.7887)"
+     transform="matrix(2.8346457,0,0,2.8346457,760.35767,217.2887)"
      style="fill:#ffffff;stroke:#000000;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1">
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.15;stroke-opacity:1;stop-color:#000000"
@@ -3433,13 +3434,46 @@
   <text
      xml:space="preserve"
      style="font-size:9px;line-height:0.95;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif';text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.425197;stroke-linecap:butt;stroke-linejoin:round;stop-color:#000000"
+     x="964.23724"
+     y="53.267471"
+     id="text7448-46-2-0-35"><tspan
+       sodipodi:role="line"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.425197"
+       x="964.23724"
+       y="53.267471"
+       id="tspan55484-62">Update</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:9px;line-height:0.95;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif';text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.425197;stroke-linecap:butt;stroke-linejoin:round;stop-color:#000000"
+     x="1050.4255"
+     y="61.939533"
+     id="text7448-46-2-0-3"><tspan
+       sodipodi:role="line"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.425197"
+       x="1050.4255"
+       y="61.939533"
+       id="tspan55484-6">Env</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:9px;line-height:0.95;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif';text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.425197;stroke-linecap:butt;stroke-linejoin:round;stop-color:#000000"
+     x="1049.4248"
+     y="122.59254"
+     id="text7448-46-2-0-3-7"><tspan
+       sodipodi:role="line"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.425197"
+       x="1049.4248"
+       y="122.59254"
+       id="tspan55484-6-5">Actor</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:9px;line-height:0.95;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif';text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.425197;stroke-linecap:butt;stroke-linejoin:round;stop-color:#000000"
      x="715.12183"
-     y="300.6105"
+     y="305.1105"
      id="text7448-46-2-0-5-6"><tspan
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.425197"
        x="715.12183"
-       y="300.6105"
+       y="305.1105"
        id="tspan55484-8-2">Diffusion mask</tspan></text>
   <text
      xml:space="preserve"
@@ -3456,12 +3490,12 @@
      xml:space="preserve"
      style="font-size:9px;line-height:0.95;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif';text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.425197;stroke-linecap:butt;stroke-linejoin:round;stop-color:#000000"
      x="1049.5779"
-     y="393.69202"
+     y="401.19202"
      id="text7448-46-2-0-5-6-8"><tspan
        sodipodi:role="line"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9px;font-family:cmr10;-inkscape-font-specification:cmr10;fill:#000000;stroke:none;stroke-width:0.425197"
        x="1049.5779"
-       y="393.69202"
+       y="401.19202"
        id="tspan55484-8-2-4">Setpoint target generation : t+7</tspan></text>
   <text
      xml:space="preserve"
@@ -3495,4 +3529,36 @@
      d="M 822.63966,28.795344 799.53692,58.0855"
      id="path3441-7"
      sodipodi:nodetypes="cc" />
+  <rect
+     style="fill:none;stroke:#000000;stroke-width:0.75;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect1424"
+     width="37.5"
+     height="30"
+     x="1031.3789"
+     y="44.699734"
+     ry="1.74177" />
+  <rect
+     style="fill:none;stroke:#000000;stroke-width:0.75;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect1426"
+     width="37.5"
+     height="30"
+     x="1031.3789"
+     y="104.69973"
+     ry="1.74177" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.75px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#TriangleOutL)"
+     d="m 1068.8789,59.699731 h 22.5 v 59.999999 h -15"
+     id="path3627" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.75px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#TriangleOutL)"
+     d="m 1031.3789,119.69973 h -22.5 V 59.699731 h 15"
+     id="path3742" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.75px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#TriangleOutL)"
+     d="M 1031.3789,119.69973 H 941.37892"
+     id="path3857" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.75px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 941.37892,59.699731 h 82.49998"
+     id="path3892" />
 </svg>
